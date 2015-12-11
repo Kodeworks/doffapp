@@ -1,0 +1,8 @@
+.idea
+*.class
+**/*.iml
+**/target/**
+**~
+deptree.txt
+log
+temp/**
