@@ -86,7 +86,6 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
     Future(
       document.select("article.widget-content.widget-eps-search-result-widget.widget > div.notice-search-item").asScala.toList.map { element =>
         val nameInternalUriElem = element.select("div.notice-search-item-header > a").last
-        //        try {
         val internalUrl = Path(nameInternalUriElem.attr("href"))
         val name = nameInternalUriElem.text()
         val flag = element.select("div.notice-search-item-header > img").first.attr("src").split("/").last.split("_").last.split("\\.").head
@@ -101,12 +100,6 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
         val municipality = Option(element.select("div:gt(3):lt(6):containsOwn(Fylke)").first).map(_.text.stripPrefix("Fylke: "))
         val externalUrl = Option(element.select("div.notice-search-item-header > a.pull-right.doc-icon").first).map(elem => Uri(elem.attr("href").trim))
         Tender(name, internalUrl, flag, publishedBy, publishedByUrl, doffinReference, announcementType, announcementDate, tenderDeadline, county, municipality, externalUrl)
-        //        } catch {
-        //          case e => {
-        //            e.printStackTrace
-        //            throw e
-        //          }
-        //        }
       }
     )
   }
