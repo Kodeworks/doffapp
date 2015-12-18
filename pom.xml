@@ -12,6 +12,7 @@
     <properties>
         <akka.streams.version>2.0-M2</akka.streams.version>
         <akka.version>2.4.1</akka.version>
+        <argonaut.version>6.1</argonaut.version>
         <jsoup.version>1.8.3</jsoup.version>
         <junit.version>4.12</junit.version>
         <logback.version>1.1.3</logback.version>
@@ -83,6 +84,12 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.argonaut</groupId>
+            <artifactId>argonaut_2.11</artifactId>
+            <version>${argonaut.version}</version>
         </dependency>
 
         <dependency>
