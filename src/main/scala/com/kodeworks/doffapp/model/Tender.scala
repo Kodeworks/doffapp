@@ -21,13 +21,13 @@ case class Tender(
                  )
 
 object Tender {
+
   import argonaut._
   import Argonaut._
   import CodecJson.derive
 
-  //TODO not entirely happy with these - should not have an inner field
-  implicit val pathCodec: CodecJson[Path] = codec1(Path(_: String), (_: Path).toString)("path")
-  implicit val uriCodec: CodecJson[Uri] = codec1(Uri(_: String), (_: Uri).toString)("uri")
-  implicit val instantCodec: CodecJson[Instant] = codec1(Instant.ofEpochMilli, (_: Instant).toEpochMilli)("instant")
+  implicit val pathCodec = CodecJson((p: Path) => jString(p.toString), _.as[String].map(Path(_)))
+  implicit val uriCodec = CodecJson((u: Uri) => jString(u.toString), _.as[String].map(Uri(_)))
+  implicit val instantCodec = CodecJson((i: Instant) => jNumber(i.toEpochMilli), _.as[Long].map(Instant.ofEpochMilli(_)))
   implicit val tenderCodec = derive[Tender]
 }

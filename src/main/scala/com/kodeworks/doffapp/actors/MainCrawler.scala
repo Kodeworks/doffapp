@@ -14,10 +14,12 @@ import akka.util.ByteString
 import com.kodeworks.doffapp.actors.MainCrawler._
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.model.Tender
+import com.kodeworks.doffapp.service.Brain
 import org.jsoup.Jsoup._
 import org.jsoup.nodes.{Document, Element}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.concurrent.Future
 
 class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
@@ -45,7 +47,34 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
       .flatMap(_ => list)
       .flatMap(split _)
       .onComplete { case tenders =>
-        tenders.foreach(tenders => log.info("DOCUMENT\n{}", tenders.mkString("\n")))
+        tenders.foreach { tenders =>
+          log.info("max words in \"name\" field: " + tenders.map(_.name.split(' ').size).max) //26
+          log.info("max chars in \"name\" field: " + tenders.map(_.name.size).max) //182
+          log.info("running muncipality == oslo test")
+          var municipalityCount = 0
+          val municipalityDictionary = mutable.Map[String, Int]()
+          val municipalityTenders: List[Int] = tenders.map { t =>
+            if (t.municipality.isEmpty) -1
+            else {
+              val municipality = t.municipality.get.toLowerCase
+              municipalityDictionary.get(municipality) match {
+                case Some(i) => i
+                case _ =>
+                  municipalityDictionary.put(municipality, municipalityCount)
+                  municipalityCount += 1
+                  municipalityCount - 1
+              }
+            }
+          }
+          val oslo = municipalityDictionary("oslo")
+          val inputOutput = municipalityTenders.map {
+            case `oslo` => List(oslo) -> List(1)
+            case m => List(m) -> List(0)
+          }
+          Brain.train(inputOutput)
+          val osloTest = Brain.run(List(oslo))
+          log.info("osloTest: " + osloTest)
+        }
         context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl)
       }
 
