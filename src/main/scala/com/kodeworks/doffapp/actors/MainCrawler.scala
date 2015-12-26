@@ -66,14 +66,58 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
               }
             }
           }
-          val oslo = municipalityDictionary("oslo")
-          val inputOutput = municipalityTenders.map {
-            case `oslo` => List(oslo) -> List(1)
-            case m => List(m) -> List(0)
+
+          var wordCount = 0
+          val wordDictionary = mutable.Map[String, Int]()
+          var wordFrequency = mutable.ListMap[Int, Int]()
+          val wordTenders = tenders.map { t =>
+            t.name.split(' ').map { word =>
+              val lword = word.toLowerCase
+              val iword = wordDictionary.get(lword) match {
+                case Some(i) => i
+                case _ =>
+                  wordDictionary.put(lword, wordCount)
+                  wordCount += 1
+                  wordCount - 1
+              }
+              wordFrequency.get(iword) match {
+                case Some(f) => wordFrequency.put(iword, f + 1)
+                case _ => wordFrequency.put(iword, 1)
+              }
+              iword
+            }.toList.distinct
           }
-          Brain.train(inputOutput)
-          val osloTest = Brain.run(List(oslo))
-          log.info("osloTest: " + osloTest)
+          val sortedIwords = wordDictionary.map(_._2).toList.sorted
+          val wordDictionaryInverse = wordDictionary.map(_.swap)
+          val sortedWordFrequency = wordFrequency.toList.sortBy(_._2)
+          log.info("wordCount " + wordCount)
+          log.info(sortedWordFrequency.takeRight(10).map(iword => wordDictionaryInverse(iword._1) -> iword._2).mkString("mostPopularWords:\n", "\n", ""))
+          log.info(sortedWordFrequency.take(10).map(iword => wordDictionaryInverse(iword._1) -> iword._2).mkString("leastPopularWords:\n", "\n", ""))
+
+          //TODO need to remove plurals
+          //TODO need to match synonyms and related words
+
+          val rammeavtale = wordDictionary("rammeavtale")
+          val inputOutputs = wordTenders.map { iwords =>
+            sortedIwords.map {
+              case iword if iwords.contains(iword) => 1
+              case _ => 0
+            } -> List(if (iwords.contains(rammeavtale)) 1 else 0)
+          }
+          Brain.train(inputOutputs)
+          val rammeavtaleTest = Brain.run(List(rammeavtale))
+          log.info("rammeavtaleTest " + rammeavtaleTest)
+
+
+
+          //          val oslo = municipalityDictionary("oslo")
+          //          val inputOutput = municipalityTenders.map {
+          //            case `oslo` => List(oslo) -> List(1)
+          //            case m => List(m) -> List(0)
+          //          }
+          //          Brain.train(inputOutput)
+          //          val osloTest = Brain.run(List(oslo))
+          //          log.info("osloTest: " + osloTest)
         }
         context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl)
       }

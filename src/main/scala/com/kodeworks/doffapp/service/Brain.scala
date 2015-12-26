@@ -30,8 +30,8 @@ trait Brain {
     engine.asInstanceOf[Invocable].invokeMethod(net, "train", js, Map(
       "iterations" -> 9000,
       "log" -> true,
-      "logPeriod" -> 10,
-      "errorThresh" -> 0.00001,
+      "logPeriod" -> 1,
+//      "errorThresh" -> 0.00001,
       "learningRate" -> 0.2
     ).asJava)
   }

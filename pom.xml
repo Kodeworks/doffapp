@@ -14,12 +14,15 @@
         <akka.version>2.4.1</akka.version>
         <argonaut.version>6.1</argonaut.version>
         <argonaut-shapeless.version>6.1</argonaut-shapeless.version>
+        <breeze.version>0.11.2</breeze.version>
+        <epic.version>0.3.1</epic.version>
         <jsoup.version>1.8.3</jsoup.version>
         <junit.version>4.12</junit.version>
         <logback.version>1.1.3</logback.version>
         <maven-compiler-plugin.version>3.3</maven-compiler-plugin.version>
         <scala.version>2.11.7</scala.version>
         <scala-maven-plugin.version>3.2.2</scala-maven-plugin.version>
+        <stanford-nlp.version>3.5.2</stanford-nlp.version>
     </properties>
 
     <build>
@@ -91,6 +94,30 @@
             <groupId>io.argonaut</groupId>
             <artifactId>argonaut_2.11</artifactId>
             <version>${argonaut.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze_2.11</artifactId>
+            <version>${breeze.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze-natives_2.11</artifactId>
+            <version>${breeze.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>epic_2.11</artifactId>
+            <version>${epic.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>english_2.11</artifactId>
+            <version>2015.2.19</version>
         </dependency>
 
         <!--
