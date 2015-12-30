@@ -17,14 +17,14 @@ class WordbankParser extends RegexParsers {
   val word = opt("-" | "’") ~> """[-a-zA-Z\u00E6\u00C6\u00F8\u00D8\u00E5\u00D5]+""".r
   val any = """.*""".r
   val line = digits ~ sep ~ word ~ sep ~ word ~ sep ~ any ^^ {
-    case _ ~ _ ~ _ ~ _ ~ word ~ _ ~ _ => word
+    case _ ~ _ ~ _ ~ _ ~ word ~ _ ~ _ => word.toLowerCase
   }
 
   def wordFromLine(input: String): Option[String] =
     parse(line, input) match {
       case Success(res, _) => Some(res)
       case x =>
-//        println(x)
+        //        println(x)
         None
     }
 }

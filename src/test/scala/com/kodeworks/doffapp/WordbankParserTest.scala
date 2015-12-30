@@ -61,7 +61,6 @@ class WordbankParserTest {
     implicit val codec = Codec(config.getString("wordbank.codec"))
     val words = Source.fromFile(config.getString("wordbank.src")).getLines.toList.flatMap(WordbankParser.wordFromLine _)
     assertEquals("A", words.head)
-    assertEquals("åvokstrene", words.last)
-    println("fis")
+    assertEquals("\u00E5vokstrene", words.last)
   }
 }

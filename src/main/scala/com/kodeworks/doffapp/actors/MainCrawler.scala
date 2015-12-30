@@ -55,12 +55,14 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
             case t if t.name contains "konsulent" => Example("interresting", t.name, t.doffinReference)
             case t => Example("uninterresting", t.name, t.doffinReference)
           }
-          val batchFeaturizer = new TfidfBatchFeaturizer[String](0)
+          val batchFeaturizer = new TfidfBatchFeaturizer[String](0, Ctx.mostUsedWords)
           val tfidfFeaturized: Seq[Example[String, Seq[FeatureObservation[String]]]] = batchFeaturizer(examples)
           val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
-          val stopwords = leastSignificantWords.take(15).map(_._1).toSet
+          val stopwords = leastSignificantWords.take(30).map(_._1).toSet
           val config = LiblinearConfig(cost = 5d, eps = .1d)
-          val featurizer = new BowFeaturizer(stopwords)
+          val featurizer = new BowFeaturizer(mostUsedWords ++ stopwords)
+          //TODO custom trainClassifier that incorporates SpellingCorrector, removes strange words like "9001", "H001", "TR-15-06", and splits words like "malerarbeid" -> "maler", "arbeid", "flammehemmet" -> "flamme", "hemmet"
+          // and that makes words lowercase, and that considers synonyms and gives them an appropriate weight, so that "person" also gives some weight to "human", and that removes variations on words (stemming).
           val classifier = NakContext.trainClassifier(config, featurizer, examples)
           val test = "Konsulenttjenester innenfor IT og sikkerhet"
           val prediction = classifier.predict(test)

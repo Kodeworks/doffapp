@@ -1,5 +1,6 @@
 package com.kodeworks.doffapp.ctx
 
+import java.io.File
 import java.time.format.DateTimeFormatter
 import concurrent.duration._
 
@@ -14,5 +15,7 @@ trait Prop {
   val loginPassword = config.getString("login.password")
   val loginUsername = config.getString("login.username")
   val mainUrl = config.getString("main.url")
+  val mostUsedWordsCodec = config.getString("most.used.words.codec")
+  val mostUsedWordsSrc = config.getString("most.used.words.src")
   val name: String = config.getString("name")
 }
