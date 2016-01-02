@@ -1,6 +1,6 @@
 package com.kodeworks.doffapp
 
-import com.kodeworks.doffapp.service.SpellingCorrector
+import com.kodeworks.doffapp.nlp.SpellingCorrector
 import org.junit.{Assert, Test}
 import Assert._
 

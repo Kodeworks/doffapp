@@ -1,6 +1,6 @@
 package com.kodeworks.doffapp
 
-import com.kodeworks.doffapp.service.WordbankParser
+import com.kodeworks.doffapp.nlp.WordbankParser
 import com.typesafe.config.ConfigFactory
 import org.junit.Assert._
 import org.junit.Test

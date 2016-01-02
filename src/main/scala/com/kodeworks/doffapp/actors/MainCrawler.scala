@@ -1,6 +1,6 @@
 package com.kodeworks.doffapp.actors
 
-import java.time.{Instant, LocalDate, ZoneOffset}
+import java.time.{LocalDate, Instant, ZoneOffset}
 
 import akka.actor.{Actor, ActorLogging}
 import akka.http.scaladsl.Http
@@ -14,15 +14,14 @@ import akka.util.ByteString
 import com.kodeworks.doffapp.actors.MainCrawler._
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.model.Tender
-import com.kodeworks.doffapp.service.Brain
+import com.kodeworks.doffapp.nlp.SpellingCorrector
 import nak.NakContext
-import nak.data.{BowFeaturizer, FeatureObservation, TfidfBatchFeaturizer, Example}
+import nak.data.{BowFeaturizer, Example, FeatureObservation, TfidfBatchFeaturizer}
 import nak.liblinear.LiblinearConfig
 import org.jsoup.Jsoup._
 import org.jsoup.nodes.{Document, Element}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.concurrent.Future
 
 class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
@@ -49,20 +48,25 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
       .flatMap(_ => internalLogin)
       .flatMap(_ => list)
       .flatMap(split _)
-      .onComplete { case tenders =>
-        tenders.foreach { tenders =>
+      .onComplete { case tenders0 =>
+        //TODO reactive streams
+        tenders0.foreach { tenders1 =>
+          val sp = new SpellingCorrector(SpellingCorrector.dict(tenders1.map(_.name).mkString(" ")))
+          val tenders = tenders1.map(t => t.copy(name = SpellingCorrector.words(t.name).map(sp.correct).mkString(" ")))
+          //TODO custom trainClassifier that incorporates SpellingCorrector, removes strange words like "9001", "H001", "TR-15-06", and splits words like
+          // "malerarbeid" -> "maler", "arbeid", "flammehemmet" -> "flamme", "hemmet"
+          // and that makes words lowercase, and that considers synonyms and gives them an appropriate weight, so that "person" also gives some weight to "human", and that removes variations on words (stemming).
           val examples: List[Example[String, String]] = tenders.map {
             case t if t.name contains "konsulent" => Example("interresting", t.name, t.doffinReference)
             case t => Example("uninterresting", t.name, t.doffinReference)
           }
+          val config = LiblinearConfig(cost = 5d, eps = .1d)
           val batchFeaturizer = new TfidfBatchFeaturizer[String](0, Ctx.mostUsedWords)
           val tfidfFeaturized: Seq[Example[String, Seq[FeatureObservation[String]]]] = batchFeaturizer(examples)
           val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
           val stopwords = leastSignificantWords.take(30).map(_._1).toSet
-          val config = LiblinearConfig(cost = 5d, eps = .1d)
-          val featurizer = new BowFeaturizer(mostUsedWords ++ stopwords)
-          //TODO custom trainClassifier that incorporates SpellingCorrector, removes strange words like "9001", "H001", "TR-15-06", and splits words like "malerarbeid" -> "maler", "arbeid", "flammehemmet" -> "flamme", "hemmet"
-          // and that makes words lowercase, and that considers synonyms and gives them an appropriate weight, so that "person" also gives some weight to "human", and that removes variations on words (stemming).
+          val featurizer = new BowFeaturizer(stopwords)
+
           val classifier = NakContext.trainClassifier(config, featurizer, examples)
           val test = "Konsulenttjenester innenfor IT og sikkerhet"
           val prediction = classifier.predict(test)

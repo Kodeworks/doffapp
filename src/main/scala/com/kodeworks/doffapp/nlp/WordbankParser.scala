@@ -1,4 +1,4 @@
-package com.kodeworks.doffapp.service
+package com.kodeworks.doffapp.nlp
 
 import scala.util.parsing.combinator.RegexParsers
 
