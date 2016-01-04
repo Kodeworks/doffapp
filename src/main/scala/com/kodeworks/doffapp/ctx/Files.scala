@@ -1,9 +1,12 @@
 package com.kodeworks.doffapp.ctx
 
+import com.kodeworks.doffapp.nlp.wordbank.{Parser, Word}
+
 import scala.io.{Codec, Source}
 import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
 
+//TODO limit responsibility of this file to make sure file is at correct location, delegate parsing to elsewhere
 trait Files {
   this: Prop =>
   val mostUsedWords: Set[String] = {
@@ -28,4 +31,16 @@ trait Files {
       .orElse(fromSource(Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(mostUsedWordsSrc))))
       .getOrElse(Nil).toSet
   }
+
+  val wordbankWords: List[Word] = {
+    implicit val codec = Codec(wordbankCodec)
+    def fromSource(src: => Source): Option[List[Word]] =
+      Try {
+        try src.getLines.toList.flatMap(Parser.wordFromLine _)
+        finally src.close
+      }.toOption
+    Source.fromFile(wordbankSrc).getLines.toList.flatMap(Parser.wordFromLine _)
+  }
+
+  val wordbankDict: Map[String, Int] = wordbankWords.map(_.full -> Int.MaxValue).toMap
 }

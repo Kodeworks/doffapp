@@ -1,9 +1,9 @@
-package com.kodeworks.doffapp.service
+package com.kodeworks.doffapp.nlp
 
 import java.io.BufferedReader
 import javax.script.{Invocable, ScriptEngine, ScriptEngineManager}
 
-import argonaut.{DecodeJson, CodecJson, EncodeJson}
+import argonaut.{DecodeJson, EncodeJson}
 import com.kodeworks.doffapp.model.InputOutput
 import jdk.nashorn.api.scripting.ScriptObjectMirror
 
@@ -39,6 +39,7 @@ trait Brain {
   def run[I: Numeric : EncodeJson : DecodeJson](input: List[I]) = {
     import argonaut._
     import Argonaut._
+
     import scala.collection.JavaConverters._
     val js = input.asJson.nospaces
     engine.asInstanceOf[Invocable].invokeMethod(net, "run", js).asInstanceOf[ScriptObjectMirror].to(classOf[java.util.List[Double]]).asScala.toList

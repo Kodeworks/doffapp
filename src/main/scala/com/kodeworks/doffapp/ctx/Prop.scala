@@ -1,14 +1,14 @@
 package com.kodeworks.doffapp.ctx
 
-import java.io.File
 import java.time.format.DateTimeFormatter
-import concurrent.duration._
+
+import scala.concurrent.duration._
 
 trait Prop {
   this: Cfg =>
   val crawlInterval: FiniteDuration = config.getDuration("crawl.interval", MILLISECONDS) millis
-  val loginExternalUrl: String = config.getString("login.external.url")
-  val loginInternalUrl: String = config.getString("login.internal.url")
+  val loginExternalUrl = config.getString("login.external.url")
+  val loginInternalUrl = config.getString("login.internal.url")
   val listDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(config.getString("list.date.format"))
   val listBeforeNow = config.getDuration("list.before.now", MILLISECONDS)
   val listUrl = config.getString("list.url")
@@ -17,5 +17,7 @@ trait Prop {
   val mainUrl = config.getString("main.url")
   val mostUsedWordsCodec = config.getString("most.used.words.codec")
   val mostUsedWordsSrc = config.getString("most.used.words.src")
-  val name: String = config.getString("name")
+  val name = config.getString("name")
+  val wordbankCodec = "ISO-8859-1"
+  val wordbankSrc = "C:\\dev\\src\\temp\\ordbank_bm\\fullform_bm.txt"
 }

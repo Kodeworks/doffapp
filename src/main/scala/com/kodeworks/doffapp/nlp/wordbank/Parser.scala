@@ -1,4 +1,4 @@
-package com.kodeworks.doffapp.nlp
+package com.kodeworks.doffapp.nlp.wordbank
 
 import scala.util.parsing.combinator.RegexParsers
 
@@ -8,7 +8,7 @@ fullform_bm.txt
 
 wordFromLine returns Some("word") or None if a word could not be found on a line
  */
-class WordbankParser extends RegexParsers {
+class Parser extends RegexParsers {
 
   override def skipWhitespace = false
 
@@ -16,11 +16,11 @@ class WordbankParser extends RegexParsers {
   val digits = """\d+""".r
   val word = opt("-" | "’") ~> """[-a-zA-Z\u00E6\u00C6\u00F8\u00D8\u00E5\u00D5]+""".r
   val any = """.*""".r
-  val line = digits ~ sep ~ word ~ sep ~ word ~ sep ~ any ^^ {
-    case _ ~ _ ~ _ ~ _ ~ word ~ _ ~ _ => word.toLowerCase
+  val line = digits ~ sep ~ word ~ sep ~ word ~ sep ~ word ~ any ^^ {
+    case _ ~ _ ~ base ~ _ ~ full ~ _ ~ clazz ~ _ => Word(base, full, clazz)
   }
 
-  def wordFromLine(input: String): Option[String] =
+  def wordFromLine(input: String): Option[Word] =
     parse(line, input) match {
       case Success(res, _) => Some(res)
       case x =>
@@ -29,4 +29,4 @@ class WordbankParser extends RegexParsers {
     }
 }
 
-object WordbankParser extends WordbankParser
+object Parser extends Parser

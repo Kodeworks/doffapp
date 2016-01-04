@@ -27,7 +27,7 @@ class SpellingCorrector(dict: Map[String, Int])(implicit codec: Codec = Codec.IS
     (max, word) =>
       val count = dict(word)
       if (count > max._1) {
-        //        if(word != max._2) println(s"""correcting "${max._2}" to "$word"""")
+        if (word != max._2) println( s"""correcting "${max._2}" to "$word"""")
         (count, word)
       } else max
   }._2

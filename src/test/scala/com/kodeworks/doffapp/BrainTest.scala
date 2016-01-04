@@ -4,7 +4,7 @@ import java.time.Instant
 
 import akka.http.scaladsl.model.Uri.Path
 import com.kodeworks.doffapp.model.{InputOutput, Tender}
-import com.kodeworks.doffapp.service.Brain
+import com.kodeworks.doffapp.nlp.Brain
 import org.junit.{Assert, Test}
 import argonaut._
 import Argonaut._
