@@ -1,5 +1,8 @@
 package com.kodeworks.doffapp.ctx
 
-trait Ctx extends Cfg with Prop with Files with Actors
+import com.kodeworks.doffapp.nlp.MostUsedWords
+import com.kodeworks.doffapp.nlp.wordbank.Wordbank
+
+trait Ctx extends Cfg with Prop with Files with Wordbank with MostUsedWords with Actors
 
 object Ctx extends Ctx

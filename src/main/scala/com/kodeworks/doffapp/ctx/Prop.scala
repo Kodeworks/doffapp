@@ -15,9 +15,9 @@ trait Prop {
   val loginPassword = config.getString("login.password")
   val loginUsername = config.getString("login.username")
   val mainUrl = config.getString("main.url")
-  val mostUsedWordsCodec = config.getString("most.used.words.codec")
+  val mostUsedWordsCodecName = config.getString("most.used.words.codec.name")
   val mostUsedWordsSrc = config.getString("most.used.words.src")
   val name = config.getString("name")
-  val wordbankCodec = "ISO-8859-1"
-  val wordbankSrc = "C:\\dev\\src\\temp\\ordbank_bm\\fullform_bm.txt"
+  val wordbankCodecName = config.getString("wordbank.codec.name")
+  val wordbankSrc = config.getString("wordbank.src")
 }

@@ -51,7 +51,8 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
       .onComplete { case tenders0 =>
         //TODO reactive streams
         tenders0.foreach { tenders1 =>
-          val sp: SpellingCorrector = new SpellingCorrector(SpellingCorrector.dict(tenders1.map(_.name.toLowerCase).mkString(" ")) ++ wordbankDict)
+          val dict: Map[String, Int] = SpellingCorrector.dict(tenders1.map(_.name.toLowerCase).mkString(" "))
+          val sp: SpellingCorrector = new SpellingCorrector(dict ++ wordbankDict)
           val tenders = tenders1.map(t => t.copy(name = SpellingCorrector.words(t.name.toLowerCase).map(sp.correct).mkString(" ")))
           //TODO custom trainClassifier that incorporates SpellingCorrector, removes strange words like "9001", "H001", "TR-15-06", and splits words like
           // "malerarbeid" -> "maler", "arbeid", "flammehemmet" -> "flamme", "hemmet"
