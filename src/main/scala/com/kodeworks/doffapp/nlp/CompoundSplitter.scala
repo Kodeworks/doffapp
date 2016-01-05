@@ -1,7 +1,7 @@
 package com.kodeworks.doffapp.nlp
 
 import com.kodeworks.doffapp.nlp.CompoundSplitter._
-import com.kodeworks.doffapp.nlp.wordbank.Word
+import com.kodeworks.doffapp.nlp.wordbank.Wordbank
 
 /**
   * Compound splitting
@@ -15,13 +15,16 @@ for each in zeros, get each in nonzeros with start index equal to
 browse..
   */
 class CompoundSplitter(
-                        words: List[Word],
+                        wordbank: Wordbank,
                         wordclassRestrictions: Map[String, String] = wordclassRestrictionsDefault,
                         binders1: List[String] = binders1Default,
                         binders2: List[String] = binders2Default
                       ) {
+
+  import wordbank._
+
   def splitCompound(compound: String) = {
-    val (zeros: List[String], nonzeros: Map[Int, List[String]]) = words
+    val (firsts: List[String], seconds: Map[Int, List[String]]) = wordbankWords
       .map(_.full).distinct
       .collect { case word0 => word0 -> compound.indexOf(word0) }
       .filter(ws =>
@@ -34,19 +37,30 @@ class CompoundSplitter(
     } match {
       case (firsts, seconds) => firsts.map(_._1) -> seconds.groupBy(_._2).map(g => g._1 -> g._2.map(_._1))
     }
-    zeros.flatMap { zero =>
-      val hasPlusoneBinder = zero.length < compound.length && binders1.contains(compound.substring(zero.length, zero.length + 1))
-      val hasPlustwoBinder = zero.length + 1 < compound.length && binders2.contains(compound.substring(zero.length, zero.length + 2))
+    firsts.flatMap { first =>
+      val hasPlusoneBinder = first.length < compound.length && binders1.contains(compound.substring(first.length, first.length + 1))
+      val hasPlustwoBinder = first.length + 1 < compound.length && binders2.contains(compound.substring(first.length, first.length + 2))
       def getNonzero(start: Int = 0) =
-        nonzeros.getOrElse(zero.length + start, Nil).filter { x =>
-          x.length == compound.length - zero.length - start
+        seconds.getOrElse(first.length + start, Nil).filter { second =>
+          second.length == compound.length - first.length - start && //first, binder and second equals compound length
+            !altEndings(first).contains(compound.substring(first.length, first.length + start) + second) //second is not an alternative ending of first
         }
       val pluszeros = getNonzero()
       val plusones = if (hasPlusoneBinder) getNonzero(1) else Nil
       val plustwos = if (hasPlustwoBinder) getNonzero(2) else Nil
-      (pluszeros ++ plusones ++ plustwos).map(zero -> _)
+      (pluszeros ++ plusones ++ plustwos).map(first -> _)
     }
   }
+
+  def alts(w: String) = wordbankWordsBaseToFull(wordbankWordsFullToBase(w))
+
+  def altEndings(w: String) =
+    alts(w)
+      .map(ww => ww -> ww.indexOf(w))
+      .filter(ww =>
+        ww._2 != -1 &&
+          w.length < ww._1.length)
+      .map(_._1.substring(w.length))
 }
 
 object CompoundSplitter {

@@ -17,5 +17,6 @@ trait Wordbank extends Cfg with Prop with Files {
   }
 
   val wordbankDict: Map[String, Int] = wordbankWords.map(_.full -> Int.MaxValue).toMap
-  val wordbankWordsByFull: Map[String, List[Word]] = wordbankWords.groupBy(_.full)
+  val wordbankWordsFullToBase: Map[String, String] = wordbankWords.map(w => w.full -> w.base).toMap
+  val wordbankWordsBaseToFull: Map[String, List[String]] = wordbankWords.groupBy(_.base).map(w => w._1 -> w._2.map(_.full))
 }

@@ -10,7 +10,11 @@ class CompoundSplitterTest {
   def test {
     val word = "konsulentstjenester"
     object Ctx extends Cfg with Prop with Files with Wordbank
-    val cs = new CompoundSplitter(Ctx.wordbankWords, Map("*" -> "*"))
-    Ctx.wordbankWords.take(100).foreach(word => println(word.full + ": " + cs.splitCompound(word.full).mkString))
+    val cs = new CompoundSplitter(Ctx, Map("*" -> "*"))
+    println(cs.splitCompound("bedriftshelsetjeneste"))
+    Ctx.wordbankWords.foreach { w =>
+      val split = cs.splitCompound(w.full)
+      println(w.full + ": " + split.mkString(","))
+    }
   }
 }
