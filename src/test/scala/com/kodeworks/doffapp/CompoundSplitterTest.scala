@@ -8,13 +8,14 @@ import org.junit.Test
 class CompoundSplitterTest {
   @Test
   def test {
-    val word = "konsulentstjenester"
+    val w0 = "utvalgskriteria"
     object Ctx extends Cfg with Prop with Files with Wordbank
-    val cs = new CompoundSplitter(Ctx, Map("*" -> "*"))
-    println(cs.splitCompound("bedriftshelsetjeneste"))
-    Ctx.wordbankWords.foreach { w =>
-      val split = cs.splitCompound(w.full)
-      println(w.full + ": " + split.mkString(","))
-    }
+    val cs = new CompoundSplitter(Ctx)
+    println(cs.splitCompound(w0))
+    Ctx.wordbankWordsFull
+      .foreach { w =>
+        val split = cs.splitCompound(w)
+        println(w + ": " + split.mkString(","))
+      }
   }
 }

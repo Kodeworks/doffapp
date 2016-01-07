@@ -3,6 +3,9 @@ package com.kodeworks.doffapp.nlp
 import com.kodeworks.doffapp.nlp.CompoundSplitter._
 import com.kodeworks.doffapp.nlp.wordbank.Wordbank
 
+import scala.collection.mutable.ListBuffer
+import scala.collection.{GenSeq, GenMap}
+
 /**
   * Compound splitting
 for each word in dict, collect those that are contained in compound, start and end index
@@ -14,42 +17,51 @@ for each in zeros, get each in nonzeros with start index equal to
 - zeros end index + 1 (in case of in-between chars like 's' between the two words, like "betalingsbetingelser")
 browse..
   */
+//TODO prefix instead of whole list
+//TODO words with triple consonants that have been subtracted to double consonants, i.e 'akuttilfellet'
 class CompoundSplitter(
                         wordbank: Wordbank,
+                        minLength: Int = minLengthDefault,
                         wordclassRestrictions: Map[String, String] = wordclassRestrictionsDefault,
-                        binders1: List[String] = binders1Default,
-                        binders2: List[String] = binders2Default
+                        binders1: Set[Char] = binders1Default,
+                        binders2: Set[String] = binders2Default
                       ) {
 
   import wordbank._
 
-  def splitCompound(compound: String) = {
-    val (firsts: List[String], seconds: Map[Int, List[String]]) = wordbankWords
-      .map(_.full).distinct
-      .collect { case word0 => word0 -> compound.indexOf(word0) }
-      .filter(ws =>
-        ws._2 != -1 //ignore not found
-          && ws._1.length < compound.length - 1 //ignore full or one-from-full matches
-          && 1 < ws._1.length) // ignore one-length matches
-      .partition {
-      case (w, 0) => true
-      case _ => false
-    } match {
-      case (firsts, seconds) => firsts.map(_._1) -> seconds.groupBy(_._2).map(g => g._1 -> g._2.map(_._1))
-    }
-    firsts.flatMap { first =>
-      val hasPlusoneBinder = first.length < compound.length && binders1.contains(compound.substring(first.length, first.length + 1))
-      val hasPlustwoBinder = first.length + 1 < compound.length && binders2.contains(compound.substring(first.length, first.length + 2))
-      def getNonzero(start: Int = 0) =
-        seconds.getOrElse(first.length + start, Nil).filter { second =>
-          second.length == compound.length - first.length - start && //first, binder and second equals compound length
-            !altEndings(first).contains(compound.substring(first.length, first.length + start) + second) //second is not an alternative ending of first
+  val wordsFullToBase: Map[String, String] = wordbankWords.filter(_.full.length >= minLength).map(w => w.full -> w.base).toMap
+  val words = wordsFullToBase.keySet
+
+  def splitCompound(compound: String): List[(String, String)] = {
+    if (2 * compound.length < minLength) return Nil
+    val splits = ListBuffer[(String, String)]()
+    var i = 0
+    while (minLength * 2 + i <= compound.length) {
+      val split0 = compound.substring(0, minLength + i)
+      if (words.contains(split0)) {
+        val split1 = compound.substring(split0.length)
+        var isBase = false
+        def notBase =
+          if (isBase) false
+          else {
+            isBase = wordsFullToBase.get(compound).contains(split0)
+            !isBase
+          }
+        if (words.contains(split1) && notBase) {
+          splits += split0 -> split1
         }
-      val pluszeros = getNonzero()
-      val plusones = if (hasPlusoneBinder) getNonzero(1) else Nil
-      val plustwos = if (hasPlustwoBinder) getNonzero(2) else Nil
-      (pluszeros ++ plusones ++ plustwos).map(first -> _)
+        if (binders1.contains(compound.charAt(split0.length))) {
+          val split2 = compound.substring(split0.length + 1)
+          if (words.contains(split2) && notBase) splits += split0 -> split2
+        }
+        if (binders2.contains(compound.substring(split0.length, split0.length + 2))) {
+          val split3 = compound.substring(split0.length + 2)
+          if (words.contains(split3) && notBase) splits += split0 -> split3
+        }
+      }
+      i += 1
     }
+    splits.toList
   }
 
   def alts(w: String) = wordbankWordsBaseToFull(wordbankWordsFullToBase(w))
@@ -64,8 +76,9 @@ class CompoundSplitter(
 }
 
 object CompoundSplitter {
-  val binders1Default = List("e", "s", "a")
-  val binders2Default = List("er")
+  val binders1Default = Set('e', 's', 'a')
+  val binders2Default = Set("er")
+  val minLengthDefault = 3
   val wordclassRestrictionsDefault = Map(
     "subst" -> "subst",
     "subst" -> "verb",
