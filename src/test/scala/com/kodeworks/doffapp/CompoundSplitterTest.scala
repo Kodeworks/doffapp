@@ -14,8 +14,10 @@ class CompoundSplitterTest {
 //    println(cs.splitN(w0))
     Ctx.wordbankWordsFull
       .foreach { w =>
-        val split = cs.splitN(w)
-        if (split.nonEmpty && split.exists(_.size > 2))
+        val split = cs.splitNShortest(w)
+        if (split.nonEmpty
+        //  && split.exists(_.size > 2)
+        )
           println(w + ": " + split.mkString(","))
       }
   }

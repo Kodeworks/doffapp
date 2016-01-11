@@ -14,12 +14,12 @@ import akka.util.ByteString
 import com.kodeworks.doffapp.actors.MainCrawler._
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.model.Tender
-import com.kodeworks.doffapp.nlp.SpellingCorrector
+import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
 import nak.NakContext
 import nak.data.{BowFeaturizer, Example, FeatureObservation, TfidfBatchFeaturizer}
 import nak.liblinear.LiblinearConfig
-import org.jsoup.Jsoup._
-import org.jsoup.nodes.{Document, Element}
+import org.jsoup.Jsoup
+import org.jsoup.nodes.{Element, Document}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -52,8 +52,13 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
         //TODO reactive streams
         tenders0.foreach { tenders1 =>
           val dict: Map[String, Int] = SpellingCorrector.dict(tenders1.map(_.name.toLowerCase).mkString(" "))
-          val sp: SpellingCorrector = new SpellingCorrector(dict ++ wordbankDict)
-          val tenders = tenders1.map(t => t.copy(name = SpellingCorrector.words(t.name.toLowerCase).map(sp.correct).mkString(" ")))
+          val sc: SpellingCorrector = new SpellingCorrector(dict ++ wordbankDict)
+          val cs = new CompoundSplitter(ctx)
+          val tenders = tenders1.map(t => t.copy(name = {
+            SpellingCorrector.words(t.name.toLowerCase).flatMap(s =>
+              cs.split(sc.correct(s))
+            ).mkString(" ")
+          }))
           //TODO custom trainClassifier that incorporates SpellingCorrector, removes strange words like "9001", "H001", "TR-15-06", and splits words like
           // "malerarbeid" -> "maler", "arbeid", "flammehemmet" -> "flamme", "hemmet"
           // and that makes words lowercase, and that considers synonyms and gives them an appropriate weight, so that "person" also gives some weight to "human", and that removes variations on words (stemming).
@@ -69,7 +74,7 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
           val featurizer = new BowFeaturizer(stopwords)
 
           val classifier = NakContext.trainClassifier(config, featurizer, examples)
-          val test = "Konsulenttjenester innenfor IT og sikkerhet"
+          val test = "konsulent tjenester innenfor it og sikkerhet"
           val prediction = classifier.predict(test)
           log.info(s"prediction of '$test': $prediction")
         }
@@ -79,11 +84,11 @@ class MainCrawler(ctx: Ctx) extends Actor with ActorLogging {
   def index: Future[Document] =
     doc(Http().singleRequest(HttpRequest(uri = mainUrl)))
 
-  def doc(response: Future[HttpResponse]) =
+  def doc(response: Future[HttpResponse]): Future[Document] =
     response
       .flatMap(_.entity.dataBytes.runFold(ByteString.empty)(_ ++ _)
         .map(_.compact.utf8String))
-      .map(parse _)
+      .map(Jsoup.parse _)
 
   def externalLogin: Future[Document] =
     login(loginExternalUrl)
