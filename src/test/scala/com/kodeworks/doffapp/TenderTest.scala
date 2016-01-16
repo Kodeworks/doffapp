@@ -14,14 +14,14 @@ class TenderTest {
     import Tender._
     val tender = Tender(
       "NH3-kuldeanlegg",
-      Path("/Notice/Details/2015-132151"),
+      "/Notice/Details/2015-132151",
       "no",
       "S\u00f8r-Tr\u00f8ndelag fylkeskommune",
       Some("https://kgv.doffin.no/ctm/Supplier/CompanyInformation/Index/2648"),
       "2015-132151",
       "Kunngj\u00f8ring av konkurranse",
-      Instant.parse("2015-11-25T00:00:00Z"),
-      Some(Instant.parse("2016-01-15T00:00:00Z")),
+      Instant.parse("2015-11-25T00:00:00Z").toEpochMilli,
+      Some(Instant.parse("2016-01-15T00:00:00Z").toEpochMilli),
       Some("Trondheim"),
       Some("S\u00f8r-Tr\u00f8ndelag"),
       Some("https://kgv.doffin.no/ctm/Supplier/Documents/Folder/137932"))

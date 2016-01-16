@@ -19,7 +19,7 @@ browse..
   */
 //TODO words with triple consonants that have been subtracted to double consonants, i.e 'akuttilfellet'
 //TODO allowed word classes
-//TODO keep trying to split while any of the split words are greater than max length
+//TODO use corpus for validation http://homepages.inf.ed.ac.uk/pkoehn/publications/compound2003.pdf
 class CompoundSplitter(
                         wordbank: Wordbank,
                         minLength: Int = minLengthDefault,

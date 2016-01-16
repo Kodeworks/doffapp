@@ -3,6 +3,13 @@ package com.kodeworks.doffapp.ctx
 import com.kodeworks.doffapp.nlp.MostUsedWords
 import com.kodeworks.doffapp.nlp.wordbank.Wordbank
 
-trait Ctx extends Cfg with Prop with Files with Wordbank with MostUsedWords with Actors
+trait Ctx
+  extends Cfg
+  with Prop
+  with Files
+  with Wordbank
+  with MostUsedWords
+  with Db
+  with Actors
 
 object Ctx extends Ctx

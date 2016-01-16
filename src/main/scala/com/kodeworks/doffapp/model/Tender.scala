@@ -7,17 +7,18 @@ import akka.http.scaladsl.model.Uri.Path
 
 case class Tender(
                    name: String,
-                   internalUrl: Path,
+                   internalUrl: String,
                    flag: String,
                    publishedBy: String,
-                   publishedByUrl: Option[Uri],
+                   publishedByUrl: Option[String],
                    doffinReference: String,
                    announcementType: String,
-                   announcementDate: Instant,
-                   tenderDeadline: Option[Instant],
+                   announcementDate: Long,
+                   tenderDeadline: Option[Long],
                    county: Option[String],
                    municipality: Option[String],
-                   externalUrl: Option[Uri]
+                   externalUrl: Option[String],
+                   id: Option[Long] = None
                  )
 
 object Tender {

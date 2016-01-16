@@ -32,15 +32,15 @@ class WordbankParserTest {
 
     val l5 = """156550	’kke	’kke	adv unormert	695	0"""
     val w5 = Parser.wordFromLine(l5)
-    assertEquals(Some(Word("kke", "kke", "adv")), w5)
+    assertEquals(None, w5)
 
     val l6 = """10	-akter	-akteren	subst mask appell ent be unormert	711	2"""
     val w6 = Parser.wordFromLine(l6)
-    assertEquals(Some(Word("akter", "akteren", "subst")), w6)
+    assertEquals(None, w6)
 
     val l7 = """86622	AP-velger	AP-velgerne	subst mask appell fl be normert	712	4"""
     val w7 = Parser.wordFromLine(l7)
-    assertEquals(Some("AP-velger", "AP-velgerne", "subst"), w7)
+    assertEquals(None, w7)
 
     val l8 = """396	AS	A.S	fork subst n\u00F8yt appell ent fl ub be @<SUBST unormert	000	0"""
     val w8 = Parser.wordFromLine(l8)
@@ -52,15 +52,15 @@ class WordbankParserTest {
 
     val l10 = """86667	Arbeiderparti-byr\u00E5d	Arbeiderparti-byr\u00E5d	subst mask appell ent ub normert	700	1"""
     val w10 = Parser.wordFromLine(l10)
-    assertEquals(Some(Word("Arbeiderparti-byr\u00E5d", "Arbeiderparti-byr\u00E5d", "subst")), w10)
+    assertEquals(None, w10)
   }
 
   @Test
   def testWordbankParser {
     val config = ConfigFactory.load
-    implicit val codec = Codec(config.getString("wordbank.codec"))
+    implicit val codec = Codec(config.getString("wordbank.codec.name"))
     val words = Source.fromFile(config.getString("wordbank.src")).getLines.toList.flatMap(Parser.wordFromLine _)
-    assertEquals(Word("A", "A", "adv"), words.head)
+    assertEquals(Word("a", "a", "symb"), words.head)
     assertEquals(Word("\u00E5vokster", "\u00E5vokstrene", "subst"), words.last)
   }
 }

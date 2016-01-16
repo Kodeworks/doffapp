@@ -7,7 +7,7 @@ import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
 
 trait MostUsedWords extends Cfg with Prop with Files {
-  val mostUsedWords: Set[String] = {
+  val mostUsedWords: List[String] = {
     implicit val codec = mostUsedWordsCodec
     def fromSource(src: => Source): Option[List[String]] =
       Try(
@@ -25,6 +25,6 @@ trait MostUsedWords extends Cfg with Prop with Files {
           Some(src.getLines.flatMap(parser.parseLine _).toList)
         } finally src.close
       ).toOption.flatten
-    fromSource(mostUsedWordsSource).getOrElse(Nil).toSet
+    fromSource(mostUsedWordsSource).getOrElse(Nil)
   }
 }
