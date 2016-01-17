@@ -12,8 +12,9 @@ import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import com.kodeworks.doffapp.actors.CrawlService._
+import com.kodeworks.doffapp.actors.DbService.Upsert
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.model.Tender
+import com.kodeworks.doffapp.model.{CrawlData, Tender}
 import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
 import nak.NakContext
 import nak.data.{BowFeaturizer, Example, FeatureObservation, TfidfBatchFeaturizer}
@@ -55,6 +56,7 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
       .onComplete { case tenders0 =>
         //TODO reactive streams
         tenders0.foreach { tenders1 =>
+          dbService ! Upsert(CrawlData(System.currentTimeMillis))
           val dict: Map[String, Int] = SpellingCorrector.dict(tenders1.map(_.name.toLowerCase).mkString(" "))
           val sc: SpellingCorrector = new SpellingCorrector(dict ++ wordbankDict)
           val cs = new CompoundSplitter(ctx)

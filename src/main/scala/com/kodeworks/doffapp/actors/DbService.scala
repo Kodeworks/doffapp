@@ -1,14 +1,14 @@
 package com.kodeworks.doffapp.actors
 
 import akka.actor.{Actor, ActorLogging}
-import com.kodeworks.doffapp.actors.DbService.{Loaded, Load}
+import akka.pattern.pipe
+import com.kodeworks.doffapp.actors.DbService._
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.model.Tender
 import org.h2.tools.Server
+
 import scala.concurrent.Future
 import scala.reflect.runtime.universe.TypeTag
-import scala.util.{Failure, Success}
-import akka.pattern.pipe
+import scala.util.{Success, Failure}
 
 class DbService(val ctx: Ctx) extends Actor with ActorLogging {
 
@@ -37,16 +37,11 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
   }
 
   override def preStart {
-    def f[T: TypeTag](t: T) {
-      println(implicitly[TypeTag[T]])
-    }
-    f(tableQuerys.getClass)
     db.run(tableQuerys.map(_.schema).reduce(_ ++ _).create).onComplete {
       case Success(_) => log.info("Schema created")
       case Failure(_) => log.error("Schema failed")
     }
-
-
+    //TODO for testing
     val h2WebServer = Server.createWebServer("-web", "-webAllowOthers", "-webPort", "8082")
     h2WebServer.start
   }
@@ -61,18 +56,38 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
       Future.sequence(persistables
         .flatMap(per => tables.get(per)
           .map(table => db.run(table.result)
-            .map(per -> _))))
+            .map(per -> _.asInstanceOf[Seq[AnyRef]]))))
         .map(res => Loaded(res.toMap))
         .pipeTo(sender)
-    case t: Tender =>
-      db.run(Tenders += t)
+    case Insert(persistable@_*) =>
+      persistable.foreach { per =>
+        table(per).foreach { table =>
+          db.run(table += per)
+        }
+      }
+    case Upsert(persistable@_*) =>
+      persistable.foreach { per =>
+        table(per).foreach { table =>
+          db.run(table.insertOrUpdate(per))
+        }
+      }
   }
+
+  private def table(per: AnyRef) =
+    tables.get(per.getClass).map(cast(_, per))
+
+  private def cast(table: TableQuery[_], per: AnyRef) =
+    table.asInstanceOf[TableQuery[Table[per.type]]]
 }
 
 object DbService {
 
-  case class Load(persistables: AnyRef*)
+  case class Insert(persistables: AnyRef*)
 
-  case class Loaded(data: Map[AnyRef, Seq[AnyRef]])
+  case class Upsert(persistables: AnyRef*)
+
+  case class Load(persistables: Class[_]*)
+
+  case class Loaded(data: Map[Class[_], Seq[AnyRef]])
 
 }
