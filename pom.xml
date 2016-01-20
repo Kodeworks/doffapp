@@ -89,6 +89,12 @@
 
         <dependency>
             <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-slf4j_2.11</artifactId>
+            <version>${akka.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http-experimental_2.11</artifactId>
             <version>${akka-streams.version}</version>
         </dependency>

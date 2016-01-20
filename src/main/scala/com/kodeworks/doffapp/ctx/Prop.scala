@@ -3,6 +3,7 @@ package com.kodeworks.doffapp.ctx
 import java.time.format.DateTimeFormatter
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 trait Prop {
   this: Cfg =>
@@ -12,6 +13,10 @@ trait Prop {
   val listDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(config.getString("list.date.format"))
   val listBeforeNow = config.getDuration("list.before.now", MILLISECONDS)
   val listUrl = config.getString("list.url")
+  val logbackConfigurationFile = Try(config.getString("logback.configuration.file")).map { lbc =>
+    System.setProperty("logback.configurationFile", lbc)
+    lbc
+  }.toOption
   val loginPassword = config.getString("login.password")
   val loginUsername = config.getString("login.username")
   val mainUrl = config.getString("main.url")

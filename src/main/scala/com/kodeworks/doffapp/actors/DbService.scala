@@ -7,8 +7,7 @@ import com.kodeworks.doffapp.ctx.Ctx
 import org.h2.tools.Server
 
 import scala.concurrent.Future
-import scala.reflect.runtime.universe.TypeTag
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 class DbService(val ctx: Ctx) extends Actor with ActorLogging {
 
@@ -17,23 +16,16 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
   import dbConfig.db
   import dbConfig.driver.api._
 
-  //macro does not give code completion, thus this dummy table for development
-  class Tenders2(tag: Tag) extends Table[(String, Double)](tag, "tender2") {
-    def name = column[String]("COF_NAME")
+  case class Chill(id: Option[Long], chilling: String, will: Int)
 
-    def price = column[Double]("PRICE")
+  class Chills(tag: Tag) extends Table[Chill](tag, "chill") {
+    def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
 
-    def * = (name, price)
-  }
-
-  case class Chill(chilling: String, will: Int)
-
-  class Chills(tag: Tag) extends Table[(String, Int)](tag, "chill") {
     def chilling = column[String]("chillings")
 
     def will = column[Int]("will")
 
-    def * = (chilling, will)
+    def * = (id, chilling, will) <>((Chill.apply _).tupled, Chill.unapply)
   }
 
   override def preStart {
@@ -52,7 +44,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
 
   override def receive = {
     case Load(persistables@_*) =>
-      println("persistables\n")
+      log.info("persistables\n " + persistables.mkString("\n"))
       Future.sequence(persistables
         .flatMap(per => tables.get(per)
           .map(table => db.run(table.result)
@@ -66,18 +58,20 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
         }
       }
     case Upsert(persistable@_*) =>
-      persistable.foreach { per =>
-        table(per).foreach { table =>
-          db.run(table.insertOrUpdate(per))
-        }
-      }
+      Future.sequence(persistable
+        .flatMap(per => table(per)
+          .map(table =>
+            db.run(table.returning(table.map(_.id)).insertOrUpdate(per))
+              .map(per -> _.flatten))))
+        .map(res => Upserted(res.toMap))
+        .pipeTo(sender)
   }
 
   private def table(per: AnyRef) =
-    tables.get(per.getClass).map(cast(_, per))
+    tables.get(per.getClass).map(tableCast(_, per))
 
-  private def cast(table: TableQuery[_], per: AnyRef) =
-    table.asInstanceOf[TableQuery[Table[per.type]]]
+  private def tableCast(table: TableQuery[_], per: AnyRef) =
+    table.asInstanceOf[TableQuery[Table[AnyRef] {val id: Rep[Option[Long]]}]]
 }
 
 object DbService {
@@ -85,6 +79,8 @@ object DbService {
   case class Insert(persistables: AnyRef*)
 
   case class Upsert(persistables: AnyRef*)
+
+  case class Upserted(persistableIds: Map[AnyRef, Option[Long]])
 
   case class Load(persistables: Class[_]*)
 

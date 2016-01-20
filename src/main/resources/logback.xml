@@ -1,17 +1,17 @@
-<configuration scan="true" scanPeriod="10 seconds">
-    <property name="ovaEnv" value="${ovaEnv}"/>
+<configuration scan="true" debug="true" scanPeriod="5 seconds">
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg %n</pattern>
         </encoder>
     </appender>
 
+    <logger name="akka.http" level="INFO"/>
     <logger name="akka.io" level="INFO"/>
-    <logger name="ch.qos.logback" level="ERROR"/>
+    <logger name="com.typesafe" level="INFO"/>
+    <logger name="ch.qos.logback" level="INFO"/>
     <logger name="slick" level="ERROR"/>
 
     <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </root>
-
 </configuration>
