@@ -1,12 +1,15 @@
 package com.kodeworks.doffapp.ctx
 
-import akka.actor.{ActorSystem, Props}
-import com.kodeworks.doffapp.actors.{DbService, CrawlService, TenderService}
+import akka.actor.{ActorRef, ActorSystem, Props}
+import com.kodeworks.doffapp.actor
+import com.kodeworks.doffapp.actor.{BootService, DbService, CrawlService, TenderService}
+import actor._
 
 trait Actors {
   this: Ctx =>
   val actorSystem = ActorSystem(name)
-  val dbService = actorSystem.actorOf(Props(new DbService(this)), classOf[DbService].getSimpleName)
-  val tenderService = actorSystem.actorOf(Props(new TenderService(this)), classOf[TenderService].getSimpleName)
-  val crawlService = actorSystem.actorOf(Props(new CrawlService(this)), classOf[CrawlService].getSimpleName)
+  val bootService: ActorRef = actorSystem.actorOf(Props(new BootService(this)), serviceName[BootService])
+  var dbService: ActorRef = null
+  var tenderService: ActorRef = null
+  var crawlService: ActorRef = null // = actorSystem.actorOf(Props(new CrawlService(this)), classOf[CrawlService].getSimpleName)
 }

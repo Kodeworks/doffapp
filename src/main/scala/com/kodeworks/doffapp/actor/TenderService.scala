@@ -1,9 +1,10 @@
-package com.kodeworks.doffapp.actors
+package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
-import com.kodeworks.doffapp.actors.DbService.{Insert, Load, Loaded}
-import com.kodeworks.doffapp.actors.TenderService._
+import com.kodeworks.doffapp.actor.DbService.{Insert, Load, Loaded}
+import com.kodeworks.doffapp.actor.TenderService._
 import com.kodeworks.doffapp.ctx.Ctx
+import com.kodeworks.doffapp.message.Inited
 import com.kodeworks.doffapp.model.Tender
 
 import scala.collection.mutable
@@ -15,15 +16,15 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
   val tenders = mutable.Map[String, Tender]()
 
   override def preStart {
-    context.become(loading)
+    context.become(initing)
     dbService ! Load(classOf[Tender])
   }
 
-  val loading: Receive = {
+  val initing: Receive = {
     case Loaded(data) =>
-      println("Got data from db: ")
       tenders ++= data(classOf[Tender]).asInstanceOf[Seq[Tender]].map(t => t.doffinReference -> t)
-      println(tenders.mkString("\n"))
+      log.info("Loaded {} tenders", tenders.size)
+      bootService ! Inited
       context.unbecome
     case x =>
       log.error("Loading - unknown message" + x)

@@ -1,4 +1,4 @@
-package com.kodeworks.doffapp.actors
+package com.kodeworks.doffapp.actor
 
 import java.time._
 
@@ -11,10 +11,11 @@ import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
-import com.kodeworks.doffapp.actors.CrawlService._
-import com.kodeworks.doffapp.actors.DbService.{Load, Loaded, Upsert, Upserted}
-import com.kodeworks.doffapp.actors.TenderService.SaveTenders
+import com.kodeworks.doffapp.actor.CrawlService._
+import com.kodeworks.doffapp.actor.DbService.{Load, Loaded, Upsert, Upserted}
+import com.kodeworks.doffapp.actor.TenderService.SaveTenders
 import com.kodeworks.doffapp.ctx.Ctx
+import com.kodeworks.doffapp.message.Inited
 import com.kodeworks.doffapp.model.{CrawlData, Tender}
 import org.jsoup.Jsoup
 import org.jsoup.nodes.{Document, Element}
@@ -34,22 +35,28 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
 
   override def preStart {
     log.info("born")
-    context.become(loading)
+    context.become(initing)
     dbService ! Load(classOf[CrawlData])
   }
 
-  val loading: Receive = {
+  val initing: Receive = {
     case Loaded(data) =>
+      log.info("Loaded {}", data)
       data(classOf[CrawlData]).asInstanceOf[Seq[CrawlData]].foreach(last = _)
+      bootService ! Inited
       context.unbecome
       crawl
+    case x =>
+      log.error("Loading - unknown message" + x)
   }
 
   override def receive = {
     case Crawl => crawl
-    case Upserted(crawlDataId) => crawlDataId.collect {
-      case (c: CrawlData, id) => last = c.copy(id = id)
-    }
+    case Upserted(crawlDataId) =>
+      log.info("Upserted {}", crawlDataId)
+      crawlDataId.collect {
+        case (c: CrawlData, id@Some(_)) => last = last.copy(id = id)
+      }
     case x =>
       log.error("Loading - unknown message" + x)
   }

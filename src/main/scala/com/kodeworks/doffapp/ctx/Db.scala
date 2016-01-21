@@ -1,7 +1,7 @@
 package com.kodeworks.doffapp.ctx
 
 import akka.actor.{ActorSystem, Props}
-import com.kodeworks.doffapp.actors.{CrawlService, TenderService}
+import com.kodeworks.doffapp.actor.{CrawlService, TenderService}
 import com.kodeworks.doffapp.model.{CrawlData, User, Tender}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
@@ -9,7 +9,7 @@ import slickext.macros.table
 
 trait Db {
   this: Ctx =>
-  val dbConfig = DatabaseConfig.forConfig[JdbcProfile]("db.h2.mem")
+  val dbConfig = DatabaseConfig.forConfig[JdbcProfile](dbType)
 
   import dbConfig.driver.api._
 
