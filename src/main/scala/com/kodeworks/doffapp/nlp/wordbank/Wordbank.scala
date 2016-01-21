@@ -6,6 +6,7 @@ import scala.io.Source
 import scala.util.Try
 
 trait Wordbank extends Cfg with Prop with Files {
+  println("Loading Wordbank")
   val wordbankWords: List[Word] = {
     implicit val codec = wordbankCodec
     def fromSource(src: => Source): Option[List[Word]] =

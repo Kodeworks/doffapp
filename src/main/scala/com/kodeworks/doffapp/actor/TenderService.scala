@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging}
 import com.kodeworks.doffapp.actor.DbService.{Insert, Load, Loaded}
 import com.kodeworks.doffapp.actor.TenderService._
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message.Inited
+import com.kodeworks.doffapp.message.InitSuccess
 import com.kodeworks.doffapp.model.Tender
 
 import scala.collection.mutable
@@ -24,7 +24,7 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
     case Loaded(data) =>
       tenders ++= data(classOf[Tender]).asInstanceOf[Seq[Tender]].map(t => t.doffinReference -> t)
       log.info("Loaded {} tenders", tenders.size)
-      bootService ! Inited
+      bootService ! InitSuccess
       context.unbecome
     case x =>
       log.error("Loading - unknown message" + x)

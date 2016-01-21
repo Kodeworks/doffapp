@@ -7,6 +7,7 @@ import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
 
 trait MostUsedWords extends Cfg with Prop with Files {
+  println("Loading MostUsedWords")
   val mostUsedWords: List[String] = {
     implicit val codec = mostUsedWordsCodec
     def fromSource(src: => Source): Option[List[String]] =

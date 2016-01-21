@@ -7,9 +7,10 @@ import actor._
 
 trait Actors {
   this: Ctx =>
+  println("Loading Actors")
   val actorSystem = ActorSystem(name)
   val bootService: ActorRef = actorSystem.actorOf(Props(new BootService(this)), serviceName[BootService])
   var dbService: ActorRef = null
   var tenderService: ActorRef = null
-  var crawlService: ActorRef = null // = actorSystem.actorOf(Props(new CrawlService(this)), classOf[CrawlService].getSimpleName)
+  var crawlService: ActorRef = null
 }

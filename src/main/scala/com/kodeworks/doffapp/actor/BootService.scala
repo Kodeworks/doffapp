@@ -2,7 +2,7 @@ package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message.Inited
+import com.kodeworks.doffapp.message.{InitFailure, InitSuccess}
 
 /*
   * Boot service makes sure actors are initialized in the correct order -
@@ -20,14 +20,17 @@ class BootService(val ctx: Ctx) extends Actor with ActorLogging {
   }
 
   override def receive = {
-    case Inited if serviceName[DbService] == sender.path.name =>
+    case InitFailure =>
+      log.error("Init failed, terminating")
+      actorSystem.terminate
+    case InitSuccess if serviceName[DbService] == sender.path.name =>
       log.info("Db => Tender")
       ctx.tenderService = service(new TenderService(ctx))
-    case Inited if serviceName[TenderService] == sender.path.name =>
+    case InitSuccess if serviceName[TenderService] == sender.path.name =>
       log.info("Tender => Crawl")
       ctx.crawlService = service(new CrawlService(ctx))
-    case Inited if serviceName[CrawlService] == sender.path.name =>
-      log.info("Crawl => init done, terminating")
+    case InitSuccess if serviceName[CrawlService] == sender.path.name =>
+      log.info("Crawl => init done, BootService terminating")
       context.stop(self)
     case x =>
       log.error("Unknown {}", x)

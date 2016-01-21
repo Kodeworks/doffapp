@@ -5,6 +5,7 @@ import com.typesafe.config.ConfigFactory
 import scala.util.Try
 
 trait Cfg {
+  println("Loading Cfg")
   val baseConfig = ConfigFactory.load
   val env = Try(baseConfig.getString("env").toLowerCase).getOrElse("dev")
   val dev = "dev" == env

@@ -8,6 +8,7 @@ import scala.util.Try
 //TODO limit responsibility of this file to make sure file is at correct location, delegate parsing to elsewhere
 trait Files {
   this: Prop =>
+  println("Loading Files")
   def validSource(src: => Source)(implicit codec: Codec): Option[Source] =
     Try(if (src.hasNext) Some(src) else None).toOption.flatten
 

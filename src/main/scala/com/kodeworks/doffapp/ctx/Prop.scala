@@ -7,6 +7,7 @@ import scala.util.Try
 
 trait Prop {
   this: Cfg =>
+  println("Loading Prop")
   val crawlInterval: FiniteDuration = config.getDuration("crawl.interval", MILLISECONDS) millis
   val dbType = config.getString("db.type")
   val loginExternalUrl = config.getString("login.external.url")

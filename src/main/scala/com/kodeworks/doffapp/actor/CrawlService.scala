@@ -15,7 +15,7 @@ import com.kodeworks.doffapp.actor.CrawlService._
 import com.kodeworks.doffapp.actor.DbService.{Load, Loaded, Upsert, Upserted}
 import com.kodeworks.doffapp.actor.TenderService.SaveTenders
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message.Inited
+import com.kodeworks.doffapp.message.InitSuccess
 import com.kodeworks.doffapp.model.{CrawlData, Tender}
 import org.jsoup.Jsoup
 import org.jsoup.nodes.{Document, Element}
@@ -43,7 +43,7 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
     case Loaded(data) =>
       log.info("Loaded {}", data)
       data(classOf[CrawlData]).asInstanceOf[Seq[CrawlData]].foreach(last = _)
-      bootService ! Inited
+      bootService ! InitSuccess
       context.unbecome
       crawl
     case x =>
@@ -58,7 +58,7 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
         case (c: CrawlData, id@Some(_)) => last = last.copy(id = id)
       }
     case x =>
-      log.error("Loading - unknown message" + x)
+      log.error("Unknown message" + x)
   }
 
   def crawl = {

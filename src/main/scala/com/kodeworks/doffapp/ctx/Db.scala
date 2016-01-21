@@ -9,6 +9,7 @@ import slickext.macros.table
 
 trait Db {
   this: Ctx =>
+  println("Loading Db")
   val dbConfig = DatabaseConfig.forConfig[JdbcProfile](dbType)
 
   import dbConfig.driver.api._
