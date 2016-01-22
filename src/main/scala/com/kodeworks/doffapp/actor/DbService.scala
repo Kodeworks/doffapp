@@ -2,18 +2,21 @@ package com.kodeworks.doffapp.actor
 
 import java.net.ConnectException
 
-import akka.actor.{ActorCell, Actor, ActorLogging}
+import akka.actor.{ActorRef, Actor, ActorLogging}
 import akka.pattern.pipe
 import com.kodeworks.doffapp.actor.DbService._
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message
+import com.kodeworks.doffapp.message._
+import com.kodeworks.doffapp.util.RichFuture
 import org.h2.tools.Server
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-import message._
-import com.kodeworks.doffapp.util.RichFuture
+import scalaz.Scalaz._
+import scalaz._
+import concurrent.duration._
 
 class DbService(val ctx: Ctx) extends Actor with ActorLogging {
 
@@ -60,42 +63,105 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
     }
   }
 
-  def initing = Actor.emptyBehavior
-
   override def postStop() {
     db.close
     if (null != h2WebServer)
       h2WebServer.stop()
   }
 
-  override def receive = extractMessage(msg => {
+  def initing = Actor.emptyBehavior
+
+  def down: Receive = {
+    val commands = ListBuffer[DbCommand]()
+
+    {
+      case c: DbCommand => commands += c
+      case x =>
+        log.error("Down - unknown message: {} with sender {}", x, sender)
+    }
+  }
+
+  override def receive = {
     case Load(persistables@_*) =>
+      val zelf = self
+      val zender = sender
       log.info("Load {}", persistables.map(_.getSimpleName).mkString(", "))
       Future.sequence(persistables
         .flatMap(per => tables.get(per)
-          .map(table => db.run(table.result)
-            .map(per -> _.asInstanceOf[Seq[AnyRef]]))))
-        .map(res => Loaded(res.toMap))
-        .pipeTo(sender)
-    case Insert(persistable@_*) =>
-      log.info("Insert")
-      persistable.foreach {
-        per =>
-          table(per).foreach {
-            table =>
-              db.run(table += per)
+          .map(table =>
+            db.run(table.result)
+              .mapAll {
+                case Success(res) => Right(per -> res)
+                case Failure(x) => Left(per -> x)
+              }
+          )).asInstanceOf[Seq[Future[Either[(Class[_], Throwable), (Class[_], Seq[AnyRef])]]]])
+        .map(_.toList.separate)
+        .map { res =>
+          if (res._1.nonEmpty) {
+            //            zelf ! Load(res._1.map(_._1): _*)
+            goDown(zelf)
           }
-      }
-    case Upsert(persistable@_*) =>
+          res
+        }
+        .map(res => Loaded(res._2.toMap, res._1.toMap))
+        .pipeTo(zender)
+
+    case Insert(persistables@_ *) =>
+      val zelf = self
+      val zender = sender
+      log.info("Insert")
+      Future.sequence(persistables
+        .flatMap(per => table(per)
+          .map(table =>
+            db.run(table += per)
+              .mapAll {
+                case Success(res) => Right(per)
+                case Failure(x) => Left(per -> x)
+              }
+          )).asInstanceOf[Seq[Future[Either[(AnyRef, Throwable), AnyRef]]]])
+        .map(_.toList.separate)
+        .map { res =>
+          if (res._1.nonEmpty) {
+            zelf ! Insert(res._1.map(_._1): _*)
+            goDown(zelf)
+          }
+          res
+        }
+        .map(res => Inserted(res._2.toList, res._1.toMap))
+        .pipeTo(zender)
+
+    case Upsert(persistable@_ *) =>
+      val zelf = self
+      val zender = sender
       log.info("Upsert")
       Future.sequence(persistable
         .flatMap(per => table(per)
           .map(table =>
             db.run(table.returning(table.map(_.id)).insertOrUpdate(per))
-              .map(per -> _.flatten))))
-        .map(res => Upserted(res.toMap))
-        .pipeTo(sender)
-  })
+              .map(_.flatten)
+              .mapAll {
+                case Success(res) => Right(per -> res)
+                case Failure(x) => Left(per -> x)
+              }
+          )).asInstanceOf[Seq[Future[Either[(AnyRef, Throwable), (AnyRef, Option[Long])]]]])
+        .map(_.toList.separate)
+        .map { res =>
+          if (res._1.nonEmpty) {
+            zelf ! Upsert(res._1.map(_._1): _*)
+            goDown(zelf)
+          }
+          res
+        }
+        .map(res => Upserted(res._2.toMap, res._1.toMap))
+        .pipeTo(zender)
+  }
+
+  def goDown(self: ActorRef = self) {
+    //TODO make sure no double entries
+    log.info("Going down, upcheck every 5 seconds")
+    context.system.scheduler.scheduleOnce(5 seconds, self, UpCheck)
+    context.become(down)
+  }
 
   private def table(per: AnyRef) =
     tables.get(per.getClass).map(tableCast(_, per))
@@ -110,14 +176,37 @@ object DbService {
 
   sealed trait DbMessage
 
-  case class Insert(persistables: AnyRef*) extends DbMessage
+  sealed trait DbInMessage extends DbMessage
 
-  case class Upsert(persistables: AnyRef*) extends DbMessage
+  sealed trait DbOutMessage extends DbMessage
 
-  case class Upserted(persistableIds: Map[AnyRef, Option[Long]]) extends DbMessage
+  sealed trait DbQuery extends DbInMessage
 
-  case class Load(persistables: Class[_]*) extends DbMessage
+  sealed trait DbCommand extends DbInMessage
 
-  case class Loaded(data: Map[Class[_], Seq[AnyRef]]) extends DbMessage
+  sealed trait DbControl extends DbMessage
+
+  case class Insert(persistables: AnyRef*) extends DbCommand
+
+  case class Inserted(
+                       persistables: List[AnyRef],
+                       errors: Map[AnyRef, Throwable] = Map.empty
+                     ) extends DbOutMessage
+
+  case class Upsert(persistables: AnyRef*) extends DbCommand
+
+  case class Upserted(
+                       persistableIds: Map[AnyRef, Option[Long]],
+                       errors: Map[AnyRef, Throwable] = Map.empty
+                     ) extends DbOutMessage
+
+  case class Load(persistables: Class[_]*) extends DbQuery
+
+  case class Loaded(
+                     data: Map[Class[_], Seq[AnyRef]],
+                     errors: Map[Class[_], Throwable] = Map.empty
+                   ) extends DbOutMessage
+
+  case object UpCheck extends DbControl
 
 }

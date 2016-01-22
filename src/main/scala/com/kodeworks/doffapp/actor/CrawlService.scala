@@ -15,14 +15,14 @@ import com.kodeworks.doffapp.actor.CrawlService._
 import com.kodeworks.doffapp.actor.DbService.{Load, Loaded, Upsert, Upserted}
 import com.kodeworks.doffapp.actor.TenderService.SaveTenders
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message.InitSuccess
+import com.kodeworks.doffapp.message.{InitFailure, InitSuccess}
 import com.kodeworks.doffapp.model.{CrawlData, Tender}
+import com.kodeworks.doffapp.util.RichFuture
 import org.jsoup.Jsoup
 import org.jsoup.nodes.{Document, Element}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
-import com.kodeworks.doffapp.util.RichFuture
 
 class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
 
@@ -40,19 +40,24 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
   }
 
   val initing: Receive = {
-    case Loaded(data) =>
+    case Loaded(data, errors) =>
       log.info("Loaded {}", data)
-      data(classOf[CrawlData]).asInstanceOf[Seq[CrawlData]].foreach(last = _)
-      bootService ! InitSuccess
-      context.unbecome
-      crawl
+      if (errors.nonEmpty) {
+        log.error("Critical database error. Error loading data during boot.")
+        bootService ! InitFailure
+      } else {
+        data(classOf[CrawlData]).asInstanceOf[Seq[CrawlData]].foreach(last = _)
+        bootService ! InitSuccess
+        context.unbecome
+        crawl
+      }
     case x =>
       log.error("Loading - unknown message" + x)
   }
 
   override def receive = {
     case Crawl => crawl
-    case Upserted(crawlDataId) =>
+    case Upserted(crawlDataId, errors) =>
       log.info("Upserted {}", crawlDataId)
       crawlDataId.collect {
         case (c: CrawlData, id@Some(_)) => last = last.copy(id = id)

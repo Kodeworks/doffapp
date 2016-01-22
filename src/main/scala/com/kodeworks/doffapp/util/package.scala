@@ -18,5 +18,4 @@ package object util {
       promise.future
     }
   }
-
 }
