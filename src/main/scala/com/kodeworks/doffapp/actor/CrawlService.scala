@@ -16,6 +16,7 @@ import com.kodeworks.doffapp.actor.DbService.{Load, Loaded, Upsert, Upserted}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message.{SaveTenders, InitFailure, InitSuccess}
 import com.kodeworks.doffapp.model.{CrawlData, Tender}
+import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
 import com.kodeworks.doffapp.util.RichFuture
 import org.jsoup.Jsoup
 import org.jsoup.nodes.{Document, Element}
@@ -76,12 +77,7 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
       .mapAll(_ =>
         context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl))
   }
-
-  /*
-  .map { tenders =>
-    tenders.foreach(tenderService ! _)
-    tenders
-  }
+ /*
   .onComplete { case tenders0 =>
     //TODO reactive streams
     tenders0.foreach { tenders1 =>
