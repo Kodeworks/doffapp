@@ -9,8 +9,12 @@ package object actor {
   def serviceName[A <: Actor : ClassTag] =
     reflect.classTag[A].runtimeClass.getSimpleName
 
-  def service[A <: Actor : ClassTag](a: => A)(implicit ac: ActorSystem) =
-    ac.actorOf(Props(a), serviceName[A])
+  def service[A <: Actor : ClassTag](a: => A, dispatcher: Option[String] = None)(implicit ac: ActorSystem) =
+    ac.actorOf(
+      if (dispatcher.isEmpty)
+        Props(a)
+      else Props(a).withDispatcher(dispatcher.get)
+      , serviceName[A])
 
   def extractMessage(msgToReceive: Any => Receive): Receive = {
     var msg: Any = null

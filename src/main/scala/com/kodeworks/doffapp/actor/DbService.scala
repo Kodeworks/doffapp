@@ -2,23 +2,23 @@ package com.kodeworks.doffapp.actor
 
 import java.net.ConnectException
 
-import akka.actor.{ActorRef, Actor, ActorLogging}
+import akka.actor._
+import akka.dispatch.{PriorityGenerator, UnboundedPriorityMailbox}
 import akka.pattern.pipe
 import com.kodeworks.doffapp.actor.DbService._
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message
 import com.kodeworks.doffapp.message._
 import com.kodeworks.doffapp.util.RichFuture
+import com.typesafe.config.Config
 import org.h2.tools.Server
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 import scalaz.Scalaz._
-import scalaz._
-import concurrent.duration._
 
-class DbService(val ctx: Ctx) extends Actor with ActorLogging {
+class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
 
   import context.dispatcher
   import ctx._
@@ -26,6 +26,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
   import dbConfig.driver.api._
 
   var h2WebServer: Server = null
+  var upCheck: Cancellable = null
 
   case class Chill(id: Option[Long], chilling: String, will: Int)
 
@@ -75,13 +76,21 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
     val commands = ListBuffer[DbCommand]()
 
     {
-      case c: DbCommand => commands += c
+      case c: DbCommand =>
+        log.info("down - stashing db command")
+        stash
+      case UpCheck =>
+        doUpCheck
+      case GoDown => //ignore, multiples may arrive
+      case GoUp => goUp
       case x =>
         log.error("Down - unknown message: {} with sender {}", x, sender)
     }
   }
 
   override def receive = {
+    case GoDown => goDown
+
     case Load(persistables@_*) =>
       val zelf = self
       val zender = sender
@@ -99,7 +108,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
         .map { res =>
           if (res._1.nonEmpty) {
             //            zelf ! Load(res._1.map(_._1): _*)
-            goDown(zelf)
+            zelf ! GoDown
           }
           res
         }
@@ -122,8 +131,8 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
         .map(_.toList.separate)
         .map { res =>
           if (res._1.nonEmpty) {
+            zelf ! GoDown
             zelf ! Insert(res._1.map(_._1): _*)
-            goDown(zelf)
           }
           res
         }
@@ -147,8 +156,8 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
         .map(_.toList.separate)
         .map { res =>
           if (res._1.nonEmpty) {
+            zelf ! GoDown
             zelf ! Upsert(res._1.map(_._1): _*)
-            goDown(zelf)
           }
           res
         }
@@ -156,11 +165,31 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging {
         .pipeTo(zender)
   }
 
-  def goDown(self: ActorRef = self) {
-    //TODO make sure no double entries
+  def goDown {
     log.info("Going down, upcheck every 5 seconds")
-    context.system.scheduler.scheduleOnce(5 seconds, self, UpCheck)
+    scheduleUpCheck
     context.become(down)
+  }
+
+  def scheduleUpCheck {
+    upCheck = context.system.scheduler.scheduleOnce(5 seconds, self, UpCheck)
+  }
+
+  def doUpCheck {
+    val zelf = self
+    db.run(CrawlDatas.result).mapAll {
+      case Success(res) =>
+        zelf ! GoUp
+      case Failure(x) =>
+        log.info("still down, retry in 5 seconds")
+        scheduleUpCheck
+    }
+  }
+
+  def goUp {
+    log.info("up check ok, going up")
+    context.unbecome
+    unstashAll
   }
 
   private def table(per: AnyRef) =
@@ -207,6 +236,16 @@ object DbService {
                      errors: Map[Class[_], Throwable] = Map.empty
                    ) extends DbOutMessage
 
+  case object GoDown extends DbControl
+
+  case object GoUp extends DbControl
+
   case object UpCheck extends DbControl
 
 }
+
+class DbMailbox(settings: ActorSystem.Settings, config: Config) extends UnboundedStablePriorityDequeBasedMailbox (
+  PriorityGenerator {
+    case x: DbControl => 0
+    case _ => 1
+  })

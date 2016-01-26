@@ -2,7 +2,7 @@ package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
 import akka.stream.ActorMaterializer
-import com.kodeworks.doffapp.actor.DbService.{Insert, Load, Loaded}
+import com.kodeworks.doffapp.actor.DbService.{Inserted, Insert, Load, Loaded}
 import com.kodeworks.doffapp.actor.TenderService._
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message.{InitFailure, InitSuccess}
@@ -22,8 +22,7 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
 
   override def preStart {
     context.become(initing)
-    context.system.scheduler.scheduleOnce(10 seconds, dbService, Load(classOf[Tender]))
-    //    dbService ! Load(classOf[Tender])
+    dbService ! Load(classOf[Tender])
   }
 
   val initing: Receive = {
@@ -45,10 +44,11 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
     case SaveTenders(ts) =>
       val newTenders = ts.filter(t => !tenders.contains(t.doffinReference))
       log.info("Got {} tenders, of which {} were new", ts.size, newTenders.size)
-      newTenders.foreach { t =>
-        tenders += t.doffinReference -> t
-        dbService ! Insert(t)
-      }
+      newTenders.foreach(t =>
+        tenders += t.doffinReference -> t)
+      if (newTenders.nonEmpty) dbService ! Insert(newTenders: _*)
+    case Inserted(data, errors) =>
+      log.info("Inserted tenders: {}", data)
     case x =>
       log.error("Unknown " + x)
   }

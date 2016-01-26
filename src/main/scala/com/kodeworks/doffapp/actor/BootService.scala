@@ -16,7 +16,7 @@ class BootService(val ctx: Ctx) extends Actor with ActorLogging {
 
   override def preStart {
     log.info("Born => Db")
-    ctx.dbService = service(new DbService(ctx))
+    ctx.dbService = service(new DbService(ctx), Some("dispatcher.db"))
   }
 
   override def receive = {

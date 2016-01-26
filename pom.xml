@@ -10,8 +10,7 @@
     <description>Scala model update</description>
 
     <properties>
-        <akka-persistence.version>2.4-M2</akka-persistence.version>
-        <akka-streams.version>2.0.1</akka-streams.version>
+        <akka-streams.version>2.0.2</akka-streams.version>
         <akka.version>2.4.1</akka.version>
         <argonaut.version>6.1</argonaut.version>
         <argonaut-shapeless.version>6.1</argonaut-shapeless.version>
@@ -41,7 +40,6 @@
     </repositories>
 
     <build>
-        <sourceDirectory>src/main/scala</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
