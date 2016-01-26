@@ -78,26 +78,6 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
         context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl))
   }
  /*
-  .onComplete { case tenders0 =>
-    //TODO reactive streams
-    tenders0.foreach { tenders1 =>
-      last = last.copy(last = System.currentTimeMillis)
-      dbService ! Upsert(last)
-      val dict: Map[String, Int] = SpellingCorrector.dict(tenders1.map(_.name.toLowerCase).mkString(" "))
-      val sc: SpellingCorrector = new SpellingCorrector(dict ++ wordbankDict)
-      val cs = new CompoundSplitter(ctx)
-      val tenders = tenders1.map(t => t.copy(name = {
-        SpellingCorrector.words(t.name.toLowerCase).flatMap { s =>
-          //TODO add to common corrections
-          val correct: String = sc.correct(s)
-
-          //TODO add full word to word list. Guess base form and other full forms based on second word in split
-          cs.split(correct).map { splitted =>
-            wordbankWordsFullToBase.getOrElse(splitted, splitted)
-          }
-        }.mkString(" ")
-      }))
-
       //TODO custom trainClassifier that considers synonyms and gives them an appropriate weight,
       // so that "person" also gives some weight to "human", and that removes variations on words (stemming).
       val examples: List[Example[String, String]] = tenders.map {
@@ -115,10 +95,6 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
       val test = "konsulent tjenester innenfor it og sikkerhet"
       val prediction = classifier.predict(test)
       log.info(s"prediction of '$test': $prediction")
-    }
-
-    context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl)
-  }
   */
 
   def index: Future[Document] =

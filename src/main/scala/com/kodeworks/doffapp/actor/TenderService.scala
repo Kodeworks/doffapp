@@ -6,7 +6,7 @@ import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message.{InitFailure, InitSuccess, SaveTenders}
 import com.kodeworks.doffapp.model.Tender
-import com.kodeworks.doffapp.nlp.SpellingCorrector
+import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
 
 import scala.collection.mutable
 
@@ -19,7 +19,10 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
   implicit val ec = context.dispatcher
 
   val tenders = mutable.Map[String, Tender]()
+  val processedNames = mutable.Map[String, String]()
   val dict = mutable.Map() ++= wordbankDict
+  val spellingCorrector = new SpellingCorrector(dict)
+  val compoundSplitter = new CompoundSplitter(ctx)
 
   override def preStart {
     context.become(initing)
@@ -63,6 +66,16 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
         else count1
       }
     }
+    processedNames ++= ts.map(tender => tender.doffinReference ->
+      SpellingCorrector.words(tender.name.toLowerCase).flatMap { s =>
+        //TODO add to common corrections
+        val correct: String = spellingCorrector.correct(s)
+        //TODO add full word to word list. Guess base form and other full forms based on second word in split
+        compoundSplitter.split(correct).map { splitted =>
+          wordbankWordsFullToBase.getOrElse(splitted, splitted)
+        }
+      }.mkString(" ")
+    )
     tenders ++= ts.map(t => t.doffinReference -> t)
   }
 }

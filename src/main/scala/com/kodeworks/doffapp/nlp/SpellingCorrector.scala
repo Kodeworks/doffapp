@@ -5,7 +5,7 @@ import com.kodeworks.doffapp.nlp.SpellingCorrector.alphabet
 import scala.io.Codec
 import scala.util.matching.Regex.MatchIterator
 
-class SpellingCorrector(dict: Map[String, Int])(implicit codec: Codec = Codec.ISO8859) {
+class SpellingCorrector(dict: collection.Map[String, Int])(implicit codec: Codec = Codec.ISO8859) {
 
   def edits(s: Seq[(String, String)]): Seq[String] =
     (for ((a, b) <- s; if b.length > 0) yield a + b.substring(1)) ++
