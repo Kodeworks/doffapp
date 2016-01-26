@@ -1,4 +1,4 @@
-package com.kodeworks.doffapp.actor
+package com.kodeworks.doffapp.mailbox
 
 import java.util
 import java.util.Comparator

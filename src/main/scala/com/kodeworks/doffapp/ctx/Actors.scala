@@ -13,4 +13,5 @@ trait Actors {
   var dbService: ActorRef = null
   var tenderService: ActorRef = null
   var crawlService: ActorRef = null
+  var classifyService: ActorRef = null
 }

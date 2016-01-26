@@ -13,9 +13,8 @@ import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import com.kodeworks.doffapp.actor.CrawlService._
 import com.kodeworks.doffapp.actor.DbService.{Load, Loaded, Upsert, Upserted}
-import com.kodeworks.doffapp.actor.TenderService.SaveTenders
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message.{InitFailure, InitSuccess}
+import com.kodeworks.doffapp.message.{SaveTenders, InitFailure, InitSuccess}
 import com.kodeworks.doffapp.model.{CrawlData, Tender}
 import com.kodeworks.doffapp.util.RichFuture
 import org.jsoup.Jsoup
@@ -28,7 +27,7 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
 
   import ctx._
 
-  implicit val system = context.system
+  implicit val ac = context.system
   implicit val materializer = ActorMaterializer()
   implicit val ec = context.dispatcher
   var last = CrawlData(Instant.now.minusMillis(listBeforeNow).atOffset(ZoneOffset.UTC).toInstant.toEpochMilli)

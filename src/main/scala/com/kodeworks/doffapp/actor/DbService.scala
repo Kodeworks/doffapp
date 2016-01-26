@@ -7,6 +7,7 @@ import akka.dispatch.{PriorityGenerator, UnboundedPriorityMailbox}
 import akka.pattern.pipe
 import com.kodeworks.doffapp.actor.DbService._
 import com.kodeworks.doffapp.ctx.Ctx
+import com.kodeworks.doffapp.mailbox.UnboundedStablePriorityDequeBasedMailbox
 import com.kodeworks.doffapp.message._
 import com.kodeworks.doffapp.util.RichFuture
 import com.typesafe.config.Config
@@ -51,7 +52,15 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
       h2WebServer = Server.createWebServer("-web", "-webAllowOthers", "-webPort", "8082")
       h2WebServer.start
     }
+    //Other db stuff?
+    def suc {
+      ctx.bootService ! InitSuccess
+      context.unbecome
+    }
     Future.sequence(inits).mapAll {
+      case Success(_) =>
+        log.info("Init done")
+        suc
       case Failure(x)
         if null != x.getCause
           && x.getCause.getClass.isAssignableFrom(classOf[ConnectException]) =>
@@ -59,8 +68,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
         ctx.bootService ! InitFailure
       case Failure(x) =>
         log.warning("Non-critical db error: {}", x)
-        ctx.bootService ! InitSuccess
-        context.unbecome
+        suc
     }
   }
 
@@ -244,7 +252,7 @@ object DbService {
 
 }
 
-class DbMailbox(settings: ActorSystem.Settings, config: Config) extends UnboundedStablePriorityDequeBasedMailbox (
+class DbMailbox(settings: ActorSystem.Settings, config: Config) extends UnboundedStablePriorityDequeBasedMailbox(
   PriorityGenerator {
     case x: DbControl => 0
     case _ => 1

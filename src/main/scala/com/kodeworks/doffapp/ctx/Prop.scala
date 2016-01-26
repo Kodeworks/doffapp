@@ -1,6 +1,8 @@
 package com.kodeworks.doffapp.ctx
 
+import java.time
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
 import scala.util.Try
@@ -10,6 +12,7 @@ trait Prop {
   println("Loading Prop")
   val crawlInterval: FiniteDuration = config.getDuration("crawl.interval", MILLISECONDS) millis
   val dbType = config.getString("db.type")
+  val initTimeout= config.getDuration("init.timeout").toMillis
   val loginExternalUrl = config.getString("login.external.url")
   val loginInternalUrl = config.getString("login.internal.url")
   val listDateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern(config.getString("list.date.format"))

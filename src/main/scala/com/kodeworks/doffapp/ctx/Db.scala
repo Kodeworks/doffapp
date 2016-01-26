@@ -2,7 +2,7 @@ package com.kodeworks.doffapp.ctx
 
 import akka.actor.{ActorSystem, Props}
 import com.kodeworks.doffapp.actor.{CrawlService, TenderService}
-import com.kodeworks.doffapp.model.{CrawlData, User, Tender}
+import com.kodeworks.doffapp.model._
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 import slickext.macros.table
@@ -14,21 +14,26 @@ trait Db {
 
   import dbConfig.driver.api._
 
-  @table[CrawlData]
-  class CrawlDatas
-
   @table[Tender]
   class Tenders
 
   @table[User]
   class Users
 
+  @table[Classify]
+  class Classifys
+
+  @table[CrawlData]
+  class CrawlDatas
+
+
   val tableQuerys = List(
-    CrawlDatas, Tenders, Users
+    Tenders, Users, Classifys, CrawlDatas
   )
 
   val tables: Map[Class[_], TableQuery[_ <: Table[_]]] = Map(
-    classOf[CrawlData] -> CrawlDatas,
     classOf[Tender] -> Tenders,
-    classOf[User] -> Users)
+    classOf[User] -> Users,
+    classOf[Classify] -> Classifys,
+    classOf[CrawlData] -> CrawlDatas)
 }

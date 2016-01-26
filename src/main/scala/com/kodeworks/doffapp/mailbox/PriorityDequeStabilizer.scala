@@ -1,9 +1,11 @@
-package com.kodeworks.doffapp.actor
+package com.kodeworks.doffapp.mailbox
 
 import java.util
 import java.util.concurrent.BlockingDeque
 import java.util.concurrent.atomic.AtomicLong
 import java.util.{Comparator, Iterator}
+
+import com.kodeworks.doffapp.actor.PriorityBlockingDeque
 
 /**
   * PriorityDequeStabilizer wraps a priority deque so that it respects FIFO for elements of equal priority.
