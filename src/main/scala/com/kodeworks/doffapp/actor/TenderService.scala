@@ -71,9 +71,7 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
         //TODO add to common corrections
         val correct: String = spellingCorrector.correct(s)
         //TODO add full word to word list. Guess base form and other full forms based on second word in split
-        compoundSplitter.split(correct).map { splitted =>
-          wordbankWordsFullToBase.getOrElse(splitted, splitted)
-        }
+        compoundSplitter.split(correct).map(wordbankWordsFullToBase _)
       }.mkString(" ")
     )
     tenders ++= ts.map(t => t.doffinReference -> t)

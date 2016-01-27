@@ -8,14 +8,14 @@ import scala.collection.mutable.ListBuffer
 
 /**
   * Compound splitting
-for each word in dict, collect those that are contained in compound, start and end index
-split list in those with start index 0 and start index non-0 (zeros, nonzeros)
-group nonzeros by start index
-for each in zeros, get each in nonzeros with start index equal to
-- zeros end index - 1 (in case of overlapping chars, like "konsulentjenester" where 't' overlaps
-- zeros end index (no overlap or inbetween chars, like "bingokveld")
-- zeros end index + 1 (in case of in-between chars like 's' between the two words, like "betalingsbetingelser")
-browse..
+  * for each word in dict, collect those that are contained in compound, start and end index
+  * split list in those with start index 0 and start index non-0 (zeros, nonzeros)
+  * group nonzeros by start index
+  * for each in zeros, get each in nonzeros with start index equal to
+  * - zeros end index - 1 (in case of overlapping chars, like "konsulentjenester" where 't' overlaps
+  * - zeros end index (no overlap or inbetween chars, like "bingokveld")
+  * - zeros end index + 1 (in case of in-between chars like 's' between the two words, like "betalingsbetingelser")
+  * browse..
   */
 //TODO words with triple consonants that have been subtracted to double consonants, i.e 'akuttilfellet'
 //TODO allowed word classes
@@ -120,7 +120,7 @@ class CompoundSplitter(
     splits.toList
   }
 
-  def alts(w: String) = wordbankWordsBaseToFull(wordbankWordsFullToBase(w))
+  def alts(w: String) = wordbankWordsBaseToFulls(wordbankWordsFullToBase(w))
 
   def altEndings(w: String) =
     alts(w)
