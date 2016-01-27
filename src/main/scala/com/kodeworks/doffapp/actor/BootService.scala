@@ -38,16 +38,23 @@ class BootService(val ctx: Ctx) extends Actor with ActorLogging {
       ctx.tenderService = service(new TenderService(ctx))
       scheduleInitTimeoutTimer
     case InitSuccess if serviceName[TenderService] == sender.path.name =>
-      log.info("Tender => Classify")
+      log.info("Tender = User")
+      ctx.userService = service(new UserService(ctx))
+      scheduleInitTimeoutTimer
+    case InitSuccess if serviceName[UserService] == sender.path.name =>
+      log.info("User => Classify")
       ctx.classifyService = service(new ClassifyService(ctx))
       scheduleInitTimeoutTimer
     case InitSuccess if serviceName[ClassifyService] == sender.path.name =>
       log.info("Classify => Crawl")
       ctx.crawlService = service(new CrawlService(ctx))
       scheduleInitTimeoutTimer
-    //users
     case InitSuccess if serviceName[CrawlService] == sender.path.name =>
-      log.info("Crawl => init done, BootService terminating")
+      log.info("Crawl => Http")
+      ctx.httpService = service(new HttpService(ctx))
+      scheduleInitTimeoutTimer
+    case InitSuccess if serviceName[HttpService] == sender.path.name =>
+      log.info("Http => init done, BootService terminating")
       context.stop(self)
     case x =>
       log.error("Unknown {}", x)
@@ -55,7 +62,7 @@ class BootService(val ctx: Ctx) extends Actor with ActorLogging {
 
   def scheduleInitTimeoutTimer {
     stopInitTimeoutTimer
-    initTimeoutTimer = context.system.scheduler.scheduleOnce(initTimeout millis, self, InitTimeout)
+    initTimeoutTimer = context.system.scheduler.scheduleOnce(bootInitTimeout millis, self, InitTimeout)
   }
 
   def stopInitTimeoutTimer {

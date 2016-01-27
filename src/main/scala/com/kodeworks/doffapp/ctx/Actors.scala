@@ -12,6 +12,8 @@ trait Actors {
   val bootService: ActorRef = actorSystem.actorOf(Props(new BootService(this)), serviceName[BootService])
   var dbService: ActorRef = null
   var tenderService: ActorRef = null
+  var userService: ActorRef = null
   var crawlService: ActorRef = null
   var classifyService: ActorRef = null
+  var httpService:ActorRef = null
 }
