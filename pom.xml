@@ -10,7 +10,7 @@
     <description>Scala model update</description>
 
     <properties>
-        <akka-streams.version>2.0.2</akka-streams.version>
+        <akka.http.version>2.0.2</akka.http.version>
         <akka.version>2.4.1</akka.version>
         <argonaut.version>6.1</argonaut.version>
         <argonaut-shapeless.version>6.1</argonaut-shapeless.version>
@@ -26,6 +26,7 @@
         <scala.version>2.11.7</scala.version>
         <scala-maven-plugin.version>3.2.2</scala-maven-plugin.version>
         <scalamacros.version>2.1.0</scalamacros.version>
+        <scalatest.version>3.0.0-M15</scalatest.version>
         <shapeless.version>2.2.5</shapeless.version>
         <slick.version>3.1.1</slick.version>
         <slickext.version>0.0.4</slickext.version>
@@ -95,7 +96,7 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http-experimental_2.11</artifactId>
-            <version>${akka-streams.version}</version>
+            <version>${akka.http.version}</version>
         </dependency>
 
         <dependency>
@@ -210,6 +211,20 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-http-testkit-experimental_2.11</artifactId>
+            <version>${akka.http.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>${scalatest.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

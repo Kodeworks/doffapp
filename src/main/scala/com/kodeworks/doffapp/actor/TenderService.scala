@@ -1,12 +1,15 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message.{InitFailure, InitSuccess, SaveTenders}
 import com.kodeworks.doffapp.model.Tender
 import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
+import akka.pattern.pipe
 
 import scala.collection.mutable
 
@@ -44,7 +47,14 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
       log.error("Loading - unknown message" + x)
   }
 
+  val route =  complete {
+    log.info("Called with requestcontext, completing")
+    "tenderservice replies"
+  }
+
   override def receive = {
+    case rc: RequestContext =>
+      route(rc).pipeTo(sender)
     case SaveTenders(ts) =>
       val newTenders0 = ts.filter(t => !tenders.contains(t.doffinReference))
       log.info("Got {} tenders, of which {} were new", ts.size, newTenders0.size)

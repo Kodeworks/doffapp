@@ -1,6 +1,8 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
@@ -8,6 +10,7 @@ import com.kodeworks.doffapp.message.{InitFailure, InitSuccess, SaveUsers}
 import com.kodeworks.doffapp.model.User
 
 import scala.collection.mutable
+import akka.pattern.pipe
 
 class UserService(ctx: Ctx) extends Actor with ActorLogging {
 
@@ -39,7 +42,14 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
       log.error("Loading - unknown message" + x)
   }
 
+  val route = complete {
+    log.info("Called with requestcontext, completing")
+    "userservice replies"
+  }
+
   override def receive = {
+    case rc: RequestContext =>
+      reject(rc).pipeTo(sender)
     case SaveUsers(ts) =>
       val newUsers = ts.filter(t => !users.contains(t.name))
       log.info("Got {} users, of which {} were new", ts.size, newUsers.size)
