@@ -1,7 +1,7 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives.{pathPrefix, complete}
 import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
@@ -11,15 +11,18 @@ import com.kodeworks.doffapp.model.Tender
 import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
 import akka.pattern.pipe
 
+import akka.pattern.ask
 import scala.collection.mutable
 
-class TenderService(ctx: Ctx) extends Actor with ActorLogging {
+class
+TenderService(ctx: Ctx) extends Actor with ActorLogging {
 
   import ctx._
 
   implicit val ac = context.system
   implicit val materializer = ActorMaterializer()
   implicit val ec = context.dispatcher
+  implicit val to = timeout
 
   val tenders = mutable.Map[String, Tender]()
   val processedNames = mutable.Map[String, String]()
@@ -47,13 +50,16 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
       log.error("Loading - unknown message" + x)
   }
 
-  val route =  complete {
-    log.info("Called with requestcontext, completing")
-    "tenderservice replies"
+  val route =  pathPrefix("tender") {
+    complete {
+      log.info("tenderservice route, thread {}", Thread.currentThread().getId+ " " + Thread.currentThread().getName)
+      "tenderservice replies"
+    }
   }
 
   override def receive = {
     case rc: RequestContext =>
+      log.info("tenderservice rc, thread {}", Thread.currentThread().getId+ " " + Thread.currentThread().getName)
       route(rc).pipeTo(sender)
     case SaveTenders(ts) =>
       val newTenders0 = ts.filter(t => !tenders.contains(t.doffinReference))

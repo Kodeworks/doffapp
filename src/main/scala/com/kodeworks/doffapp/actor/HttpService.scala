@@ -23,7 +23,7 @@ class HttpService(ctx: Ctx) extends Actor with ActorLogging {
   implicit val ac = context.system
   implicit val materializer = ActorMaterializer()
   implicit val ec = context.dispatcher
-  implicit val to = ctx.timeout
+  implicit val to = timeout
 
   override def preStart {
     log.info("born")

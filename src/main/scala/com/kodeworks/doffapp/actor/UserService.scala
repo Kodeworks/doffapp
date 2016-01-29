@@ -1,7 +1,7 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives.{pathPrefix, complete}
 import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
@@ -42,14 +42,18 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
       log.error("Loading - unknown message" + x)
   }
 
-  val route = complete {
-    log.info("Called with requestcontext, completing")
-    "userservice replies"
-  }
+  val route =
+    pathPrefix("user") {
+      complete {
+        log.info("userservice route, thread {}", Thread.currentThread().getId+ " " + Thread.currentThread().getName)
+        "userservice replies"
+      }
+    }
 
   override def receive = {
     case rc: RequestContext =>
-      reject(rc).pipeTo(sender)
+      log.info("userservice rc, thread {}", Thread.currentThread().getId+ " " + Thread.currentThread().getName)
+      route(rc).pipeTo(sender)
     case SaveUsers(ts) =>
       val newUsers = ts.filter(t => !users.contains(t.name))
       log.info("Got {} users, of which {} were new", ts.size, newUsers.size)
