@@ -1,8 +1,9 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
-import akka.http.scaladsl.server.Directives.{pathPrefix, complete}
+import akka.http.scaladsl.server.Directives.{path, pathPrefix, complete}
 import akka.http.scaladsl.server.RequestContext
+import akka.http.scaladsl.server.RouteConcatenation.enhanceRouteWithConcatenation
 import akka.stream.ActorMaterializer
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
@@ -11,6 +12,8 @@ import com.kodeworks.doffapp.model.User
 
 import scala.collection.mutable
 import akka.pattern.pipe
+import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
+import User.Json._
 
 class UserService(ctx: Ctx) extends Actor with ActorLogging {
 
@@ -44,15 +47,20 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
 
   val route =
     pathPrefix("user") {
-      complete {
-        log.info("userservice route, thread {}", Thread.currentThread().getId+ " " + Thread.currentThread().getName)
+      path("create") {
+        val user = User()
+        users += user.name -> user
+        dbService ! Insert(user)
+        complete(user)
+      } ~ complete {
+        log.info("userservice route, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
         "userservice replies"
       }
     }
 
   override def receive = {
     case rc: RequestContext =>
-      log.info("userservice rc, thread {}", Thread.currentThread().getId+ " " + Thread.currentThread().getName)
+      log.info("userservice rc, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
       route(rc).pipeTo(sender)
     case SaveUsers(ts) =>
       val newUsers = ts.filter(t => !users.contains(t.name))

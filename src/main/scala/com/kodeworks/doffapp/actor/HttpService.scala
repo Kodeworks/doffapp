@@ -1,20 +1,18 @@
 package com.kodeworks.doffapp.actor
 
-import akka.actor.{ActorRef, Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.RouteConcatenation.RouteWithConcatenation
 import akka.http.scaladsl.server._
-import akka.pattern.pipe
-import akka.pattern.ask
-
+import akka.pattern.{ask, pipe}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import com.kodeworks.doffapp.actor.HttpService._
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message.{InitFailure, InitSuccess}
-import HttpService._
-import akka.http.scaladsl.server.Directives._
 import com.kodeworks.doffapp.util.RichFuture
-import scala.util.{Success, Failure}
+
+import scala.util.{Failure, Success}
 
 class HttpService(ctx: Ctx) extends Actor with ActorLogging {
 
