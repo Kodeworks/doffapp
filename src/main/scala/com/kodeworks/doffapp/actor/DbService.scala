@@ -81,19 +81,15 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
   def initing = Actor.emptyBehavior
 
   def down: Receive = {
-    val commands = ListBuffer[DbCommand]()
-
-    {
-      case c: DbCommand =>
-        log.info("down - stashing db command")
-        stash
-      case UpCheck =>
-        doUpCheck
-      case GoDown => //ignore, multiples may arrive
-      case GoUp => goUp
-      case x =>
-        log.error("Down - unknown message: {} with sender {}", x, sender)
-    }
+    case c: DbCommand =>
+      log.info("down - stashing db command")
+      stash
+    case UpCheck =>
+      doUpCheck
+    case GoDown => //ignore, multiples may arrive
+    case GoUp => goUp
+    case x =>
+      log.error("Down - unknown message: {} with sender {}", x, sender)
   }
 
   override def receive = {
@@ -256,4 +252,4 @@ class DbMailbox(settings: ActorSystem.Settings, config: Config) extends Unbounde
   PriorityGenerator {
     case x: DbControl => 0
     case _ => 1
-  })
+  }, config.getInt("mailbox-capacity"))

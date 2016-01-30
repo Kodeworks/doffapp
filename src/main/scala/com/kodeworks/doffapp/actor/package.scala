@@ -9,12 +9,16 @@ package object actor {
   def serviceName[A <: Actor : ClassTag] =
     reflect.classTag[A].runtimeClass.getSimpleName
 
-  def service[A <: Actor : ClassTag](a: => A, dispatcher: Option[String] = None)(implicit ac: ActorSystem) =
+  def service[A <: Actor : ClassTag](a: => A, dispatcher: Option[String] = None, mailbox: Option[String] = None)(implicit ac: ActorSystem) =
     ac.actorOf(
-      if (dispatcher.isEmpty)
-        Props(a)
-      else Props(a).withDispatcher(dispatcher.get)
-      , serviceName[A])
+      {
+        var props = Props(a)
+        if (dispatcher.nonEmpty)
+          props = props.withDispatcher(dispatcher.get)
+        if (mailbox.nonEmpty)
+          props = props.withMailbox(mailbox.get)
+        props
+      }, serviceName[A])
 
   def extractMessage(msgToReceive: Any => Receive): Receive = {
     var msg: Any = null
