@@ -14,6 +14,8 @@ import scala.collection.mutable
 import akka.pattern.pipe
 import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
 import User.Json._
+import com.softwaremill.session.SessionDirectives._
+import com.softwaremill.session.SessionOptions._
 
 class UserService(ctx: Ctx) extends Actor with ActorLogging {
 
@@ -22,6 +24,8 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
   implicit val ac = context.system
   implicit val materializer = ActorMaterializer()
   implicit val ec = context.dispatcher
+
+  implicit def sm = sessionManager
 
   val users = mutable.Map[String, User]()
 
@@ -48,10 +52,15 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
   val route =
     pathPrefix("user") {
       path("create") {
-        val user = User()
-        users += user.name -> user
-        dbService ! Insert(user)
-        complete(user)
+        touchRequiredSession(oneOff, usingCookies) { session =>
+          complete(400 -> "You already have a session, why are you trying to create a new one? Asshole")
+        } ~ {
+          val user = User()
+          self ! SaveUsers(Seq(user))
+          setSession(oneOff, usingCookies, user.name) {
+            complete(user)
+          }
+        }
       } ~ complete {
         log.info("userservice route, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
         "userservice replies"

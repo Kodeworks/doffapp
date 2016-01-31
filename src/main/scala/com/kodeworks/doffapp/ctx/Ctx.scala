@@ -5,11 +5,12 @@ import com.kodeworks.doffapp.nlp.wordbank.Wordbank
 
 trait Ctx
   extends Cfg
-  with Prop
-  with Files
-  with Wordbank
-  with MostUsedWords
-  with Db
-  with Actors
+    with Prop
+    with Files
+    with Wordbank
+    with MostUsedWords
+    with Db
+    with Actors
+    with Http
 
 object Ctx extends Ctx

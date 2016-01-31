@@ -14,6 +14,9 @@ import com.kodeworks.doffapp.util.RichFuture
 
 import scala.util.{Failure, Success}
 
+import com.softwaremill.session.SessionDirectives._
+import com.softwaremill.session.SessionOptions._
+
 class HttpService(ctx: Ctx) extends Actor with ActorLogging {
 
   import ctx._
@@ -22,6 +25,8 @@ class HttpService(ctx: Ctx) extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
   implicit val ec = context.dispatcher
   implicit val to = timeout
+
+  implicit def sm = sessionManager
 
   override def preStart {
     log.info("born")
@@ -49,6 +54,12 @@ class HttpService(ctx: Ctx) extends Actor with ActorLogging {
       log.error("Initing - unknown message " + x)
   }
 
+  val route: Route =
+    userService ~
+      touchRequiredSession(oneOff, usingCookies) { session =>
+        tenderService
+      }
+
   override def receive = {
     case rc: RequestContext =>
       log.info("Called with requestcontext, forwarding, sender: {}", sender)
@@ -57,7 +68,6 @@ class HttpService(ctx: Ctx) extends Actor with ActorLogging {
       log.error("Unknown " + x)
   }
 
-  val route: Route = userService ~ tenderService
 }
 
 object HttpService {

@@ -10,6 +10,7 @@
     <description>Scala model update</description>
 
     <properties>
+        <akka.http.session.version>0.2.3</akka.http.session.version>
         <akka.http.version>2.0.2</akka.http.version>
         <akka.version>2.4.1</akka.version>
         <argonaut.version>6.1</argonaut.version>
@@ -97,6 +98,12 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http-experimental_2.11</artifactId>
             <version>${akka.http.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.softwaremill.akka-http-session</groupId>
+            <artifactId>core_2.11</artifactId>
+            <version>${akka.http.session.version}</version>
         </dependency>
 
         <dependency>
