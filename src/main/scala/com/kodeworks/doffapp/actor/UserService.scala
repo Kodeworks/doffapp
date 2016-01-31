@@ -52,18 +52,21 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
   val route =
     pathPrefix("user") {
       path("create") {
-        touchRequiredSession(oneOff, usingCookies) { session =>
-          complete(400 -> "You already have a session, why are you trying to create a new one? Asshole")
-        } ~ {
-          val user = User()
-          self ! SaveUsers(Seq(user))
-          setSession(oneOff, usingCookies, user.name) {
-            complete(user)
-          }
+        touchOptionalSession(oneOff, usingCookies) {
+          case Some(session) =>
+            complete(400 -> "You already have a session, why are you trying to create a new one? Asshole")
+          case _ =>
+            val user = User()
+            self ! SaveUsers(Seq(user))
+            setSession(oneOff, usingCookies, user.name) {
+              complete(user)
+            }
         }
-      } ~ complete {
-        log.info("userservice route, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
-        "userservice replies"
+      } ~ touchRequiredSession(oneOff, usingCookies) { session =>
+        complete {
+          log.info("userservice route, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
+          "userservice replies"
+        }
       }
     }
 
