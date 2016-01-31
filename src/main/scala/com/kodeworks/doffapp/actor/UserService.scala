@@ -1,7 +1,7 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
-import akka.http.scaladsl.server.Directives.{path, pathPrefix, complete}
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.server.RouteConcatenation.enhanceRouteWithConcatenation
 import akka.stream.ActorMaterializer
@@ -51,16 +51,36 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
 
   val route =
     pathPrefix("user") {
-      path("create") {
-        touchOptionalSession(oneOff, usingCookies) {
-          case Some(session) =>
-            complete(400 -> "You already have a session, why are you trying to create a new one? Asshole")
-          case _ =>
-            val user = User()
-            self ! SaveUsers(Seq(user))
-            setSession(oneOff, usingCookies, user.name) {
-              complete(user)
+      post {
+        path("create") {
+          touchOptionalSession(oneOff, usingCookies) {
+            case Some(username) =>
+              complete(400 -> s"You are already logged in as $username. Please log out before trying to create a new user")
+            case _ =>
+              val user = User()
+              self ! SaveUsers(Seq(user))
+              setSession(oneOff, usingCookies, user.name) {
+                complete(user)
+              }
+          }
+        } ~ (path("login") & entity(as[User])) { user =>
+          validate(users.contains(user.name), s"Unknown user ${user.name}") {
+            touchOptionalSession(oneOff, usingCookies) {
+              case Some(username) =>
+                complete(400 -> s"You are already logged in as $username. Please log out before trying to log in with another user")
+              case _ =>
+                log.info("User logged in: {}", user.name)
+                setSession(oneOff, usingCookies, user.name) {
+                  complete(s"Welcome back, ${user.name}")
+                }
             }
+          }
+        } ~ path("logout") {
+          requiredSession(oneOff, usingCookies) { username =>
+            invalidateSession(oneOff, usingCookies) {
+              complete(s"$username logged out")
+            }
+          }
         }
       } ~ touchRequiredSession(oneOff, usingCookies) { session =>
         complete {
