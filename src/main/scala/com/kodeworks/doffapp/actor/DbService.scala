@@ -126,12 +126,12 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
       Future.sequence(persistables
         .flatMap(per => table(per)
           .map(table =>
-            db.run(table += per)
+            db.run(table.returning(table.map(_.id)) += per)
               .mapAll {
-                case Success(res) => Right(per)
+                case Success(res) => Right(per -> res)
                 case Failure(x) => Left(per -> x)
               }
-          )).asInstanceOf[Seq[Future[Either[(AnyRef, Throwable), AnyRef]]]])
+          )).asInstanceOf[Seq[Future[Either[(AnyRef, Throwable), (AnyRef, Option[Long])]]]])
         .map(_.toList.separate)
         .map { res =>
           if (res._1.nonEmpty) {
@@ -140,7 +140,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
           }
           res
         }
-        .map(res => Inserted(res._2.toList, res._1.toMap))
+        .map(res => Inserted(res._2.toMap, res._1.toMap))
         .pipeTo(zender)
 
     case Upsert(persistable@_ *) =>
@@ -222,7 +222,7 @@ object DbService {
   case class Insert(persistables: AnyRef*) extends DbCommand
 
   case class Inserted(
-                       persistables: List[AnyRef],
+                       persistables: Map[AnyRef, Option[Long]],
                        errors: Map[AnyRef, Throwable] = Map.empty
                      ) extends DbOutMessage
 

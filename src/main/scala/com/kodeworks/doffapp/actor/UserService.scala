@@ -63,29 +63,28 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
                 complete(user)
               }
           }
-        } ~ (path("login") & entity(as[User])) { user =>
-          validate(users.contains(user.name), s"Unknown user ${user.name}") {
-            touchOptionalSession(oneOff, usingCookies) {
-              case Some(username) =>
-                complete(400 -> s"You are already logged in as $username. Please log out before trying to log in with another user")
-              case _ =>
-                log.info("User logged in: {}", user.name)
-                setSession(oneOff, usingCookies, user.name) {
-                  complete(s"Welcome back, ${user.name}")
+        } ~
+          pathPrefix("login") {
+            def login(user: User) =
+              validate(users.contains(user.name), s"Unknown user ${user.name}") {
+                touchOptionalSession(oneOff, usingCookies) {
+                  case Some(username) =>
+                    complete(400 -> s"You are already logged in as $username. Please log out before trying to log in with another user")
+                  case _ =>
+                    log.info("User logged in: {}", user.name)
+                    setSession(oneOff, usingCookies, user.name) {
+                      complete(s"Welcome back, ${user.name}")
+                    }
                 }
-            }
-          }
-        } ~ path("logout") {
+              }
+            path(Segment)(userName => login(User(userName))) ~
+              entity(as[User])(login _)
+          } ~ path("logout") {
           requiredSession(oneOff, usingCookies) { username =>
             invalidateSession(oneOff, usingCookies) {
               complete(s"$username logged out")
             }
           }
-        }
-      } ~ touchRequiredSession(oneOff, usingCookies) { session =>
-        complete {
-          log.info("userservice route, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
-          "userservice replies"
         }
       }
     }
@@ -101,7 +100,9 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
       if (newUsers.nonEmpty) dbService ! Insert(newUsers: _*)
     case Inserted(data, errors) =>
       log.info("Inserted users: {}", data)
-      users ++= data.asInstanceOf[List[User]].map(t => t.name -> t)
+      users ++= data.asInstanceOf[Map[User, Option[Long]]].map {
+        case (u, id) => u.name -> u.copy(id = id)
+      }
     case x =>
       log.error("Unknown " + x)
   }

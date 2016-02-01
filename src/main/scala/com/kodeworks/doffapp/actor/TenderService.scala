@@ -53,7 +53,7 @@ TenderService(ctx: Ctx) extends Actor with ActorLogging {
   }
 
   val route = pathPrefix("tender") {
-    (get & path("list")) {
+    get {
       complete(tenders.map(_._2))
     }
   }
@@ -69,7 +69,9 @@ TenderService(ctx: Ctx) extends Actor with ActorLogging {
       if (newTenders0.nonEmpty) dbService ! Insert(newTenders0: _*)
     case Inserted(data, errors) =>
       log.info("Inserted tenders: {}", data)
-      tenders ++= data.asInstanceOf[List[Tender]].map(t => t.doffinReference -> t)
+      tenders ++= data.asInstanceOf[Map[Tender, Option[Long]]].map {
+        case (t, id) => t.doffinReference -> t.copy(id = id)
+      }
     case x =>
       log.error("Unknown " + x)
   }
