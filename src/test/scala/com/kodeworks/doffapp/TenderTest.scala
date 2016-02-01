@@ -3,15 +3,17 @@ package com.kodeworks.doffapp
 import java.time.Instant
 
 import akka.http.scaladsl.model.Uri.Path
+import argonaut.Json
 import com.kodeworks.doffapp.model.Tender
-import org.junit.Test
+import org.junit.{Assert, Test}
 
 class TenderTest {
 
   @Test
   def testTenderCodec {
     import argonaut.Argonaut._
-    import Tender._
+    import Tender.Json._
+
     val tender = Tender(
       "NH3-kuldeanlegg",
       "/Notice/Details/2015-132151",
@@ -25,6 +27,7 @@ class TenderTest {
       Some("Trondheim"),
       Some("S\u00f8r-Tr\u00f8ndelag"),
       Some("https://kgv.doffin.no/ctm/Supplier/Documents/Folder/137932"))
-    println(tender.asJson)
+    val json = tender.asJson
+    Assert.assertTrue(json.hasField("internalUrl"))
   }
 }

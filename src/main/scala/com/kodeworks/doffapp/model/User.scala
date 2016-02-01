@@ -10,10 +10,8 @@ case class User(
 object User {
 
   object Json {
+    import argonaut.CodecJson.derive
     import argonaut._
-    import Argonaut._
-    import CodecJson.derive
-
     implicit val UserCodec = derive[User]
   }
 

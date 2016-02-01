@@ -57,7 +57,8 @@ class HttpService(ctx: Ctx) extends Actor with ActorLogging {
   val route: Route =
     userService ~
       touchRequiredSession(oneOff, usingCookies) { session =>
-        tenderService
+        tenderService ~
+          classifyService
       }
 
   override def receive = {
