@@ -7,7 +7,7 @@ import scala.io.Source
 import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
 
-trait MostUsedWords extends Cfg with Prop with Files with Wordbank{
+trait MostUsedWords extends Cfg with Prop with Files with Wordbank {
   println("Loading MostUsedWords")
   val mostUsedWords: List[String] = {
     implicit val codec = mostUsedWordsCodec
@@ -29,6 +29,4 @@ trait MostUsedWords extends Cfg with Prop with Files with Wordbank{
       ).toOption.flatten
     fromSource(mostUsedWordsSource).getOrElse(Nil)
   }.map(wordbankWordsFullToBase _)
-
-  val mostUsedWordsTop64 = mostUsedWords.take(64)
 }

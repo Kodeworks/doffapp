@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message.{InitFailure, InitSuccess, SaveTenders}
+import com.kodeworks.doffapp.message._
 import com.kodeworks.doffapp.model.{User, Tender}
 import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
 import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
@@ -59,13 +59,18 @@ TenderService(ctx: Ctx) extends Actor with ActorLogging {
       } ~ {
         log.info("pff")
         complete(tenders.map(_._2))
-    }}
+      }
+    }
   }
 
   override def receive = {
     case rc: RequestContext =>
       log.info("tenderservice rc, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
       route(rc).pipeTo(sender)
+    case GetTenderProcessedNames =>
+      sender ! GetTenderProcessedNamesReply(processedNames.toMap)
+    case GetTenderProcessedNames(ts) =>
+      sender ! GetTenderProcessedNamesReply(processedNames.filter(tpn => ts.contains(tpn._1)).toMap)
     case SaveTenders(ts) =>
       val newTenders0 = ts.filter(t => !tenders.contains(t.doffinReference))
       log.info("Got {} tenders, of which {} were new", ts.size, newTenders0.size)

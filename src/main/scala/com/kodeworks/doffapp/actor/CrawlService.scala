@@ -77,25 +77,6 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
       .mapAll(_ =>
         context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl))
   }
- /*
-      //TODO custom trainClassifier that considers synonyms and gives them an appropriate weight,
-      // so that "person" also gives some weight to "human", and that removes variations on words (stemming).
-      val examples: List[Example[String, String]] = tenders.map {
-        case t if t.name contains "konsulent" => Example("interresting", t.name, t.doffinReference)
-        case t => Example("uninterresting", t.name, t.doffinReference)
-      }
-      val config = LiblinearConfig(cost = 5d, eps = .1d)
-      val batchFeaturizer = new TfidfBatchFeaturizer[String](0, Ctx.mostUsedWords.toSet)
-      val tfidfFeaturized: Seq[Example[String, Seq[FeatureObservation[String]]]] = batchFeaturizer(examples)
-      val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
-      val stopwords = leastSignificantWords.take(30).map(_._1).toSet
-      val featurizer = new BowFeaturizer(stopwords)
-
-      val classifier = NakContext.trainClassifier(config, featurizer, examples)
-      val test = "konsulent tjenester innenfor it og sikkerhet"
-      val prediction = classifier.predict(test)
-      log.info(s"prediction of '$test': $prediction")
-  */
 
   def index: Future[Document] =
     doc(Http().singleRequest(HttpRequest(uri = mainUrl)))

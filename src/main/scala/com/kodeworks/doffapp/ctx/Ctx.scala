@@ -9,6 +9,7 @@ trait Ctx
     with Files
     with Wordbank
     with MostUsedWords
+    with Nlp
     with Db
     with Actors
     with Http
