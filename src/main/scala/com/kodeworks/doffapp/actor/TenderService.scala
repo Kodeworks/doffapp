@@ -54,8 +54,12 @@ TenderService(ctx: Ctx) extends Actor with ActorLogging {
 
   val route = pathPrefix("tender") {
     get {
-      complete(tenders.map(_._2))
-    }
+      path("processed") {
+        complete(processedNames.map(kv => Map("doffinReference" -> kv._1, "name" -> kv._2)))
+      } ~ {
+        log.info("pff")
+        complete(tenders.map(_._2))
+    }}
   }
 
   override def receive = {

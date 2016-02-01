@@ -29,4 +29,6 @@ trait MostUsedWords extends Cfg with Prop with Files with Wordbank{
       ).toOption.flatten
     fromSource(mostUsedWordsSource).getOrElse(Nil)
   }.map(wordbankWordsFullToBase _)
+
+  val mostUsedWordsTop64 = mostUsedWords.take(64)
 }
