@@ -1,6 +1,6 @@
 package com.kodeworks.doffapp.nlp
 
-import com.kodeworks.doffapp.ctx.{Cfg, Files, Prop}
+import com.kodeworks.doffapp.ctx.{Ctx, Cfg, Files, Prop}
 import com.kodeworks.doffapp.nlp.wordbank.Wordbank
 
 import scala.io.Source
@@ -29,4 +29,6 @@ trait MostUsedWords extends Cfg with Prop with Files with Wordbank {
       ).toOption.flatten
     fromSource(mostUsedWordsSource).getOrElse(Nil)
   }.map(wordbankWordsFullToBase _)
+
+  val mostUsedWordsTop64 = mostUsedWords.take(64).toSet
 }

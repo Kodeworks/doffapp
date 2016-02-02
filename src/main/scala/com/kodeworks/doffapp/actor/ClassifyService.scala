@@ -1,9 +1,12 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
+import breeze.linalg.Counter
+import com.kodeworks.doffapp
 import com.kodeworks.doffapp.actor.ClassifyService.NewUserClassifiers
 import com.kodeworks.doffapp.actor.DbService.{Inserted, Insert, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
@@ -11,12 +14,13 @@ import com.kodeworks.doffapp.message._
 import com.kodeworks.doffapp.model.{Tender, Classify}
 import akka.pattern.{pipe, ask}
 import nak.NakContext
+import nak.classify.NaiveBayes
 import nak.core.{FeaturizedClassifier, IndexedClassifier}
 import nak.data.{BowFeaturizer, FeatureObservation, Example}
 import scala.collection.mutable
 import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
 import Classify.Json._
-
+import doffapp.nlp._
 import com.softwaremill.session.SessionDirectives._
 import com.softwaremill.session.SessionOptions._
 
@@ -36,7 +40,7 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
   implicit def sm = sessionManager
 
   val classifys = mutable.Set[Classify]()
-  val userClassifiers = mutable.Map[String, IndexedClassifier[String] with FeaturizedClassifier[String, String]]()
+  val userClassifiers = mutable.Map[String, NaiveBayes[Boolean, String]]()
 
   override def preStart {
     context.become(initing)
@@ -66,7 +70,10 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
             (rc: RequestContext) =>
               tenderService ? GetTenderProcessedNames(Set(tender)) flatMap {
                 case GetTenderProcessedNamesReply(pns) if pns.nonEmpty =>
-                  rc.complete(classifier.predict(pns(tender)))
+                  val cs = countString(pns(tender))
+                  val classify: Boolean = classifier.classify(cs)
+                  val predict = classifier.scores(cs).toMap.map { case (k, v) => k.toString -> v }
+                  rc.complete(predict)
                 case _ => rc.complete("No such tender")
               }
           case _ =>
@@ -113,24 +120,19 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
     //TODO actually classify all tenders
   }
 
-  def newUserClassifys(user: String, tendersFuture: Future[Map[String, String]]) = {
+  def newUserClassifys(user: String, tendersFuture: Future[Map[String, String]]): Future[(String, NaiveBayes[Boolean, String])] = {
     val userClassifys = classifys.filter(_.user == user).map(c => c.tender -> c).toMap
     tendersFuture.map { ts =>
-      val tenders = ts.filter { case (t, _) => userClassifys.contains(t) }
-      val examples: Seq[Example[String, String]] = tenders.map { case (t, pn) =>
-        Example(if (userClassifys(t).interresting) "1" else "0", pn, t)
-      }.toSeq
-      val tfidfFeaturized: Seq[Example[String, Seq[FeatureObservation[String]]]] = batchFeaturizer(examples)
-      val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
-      val stopwords: Set[String] = leastSignificantWords.take(30).map(_._1).toSet
-      val featurizer: BowFeaturizer = new BowFeaturizer(stopwords)
-      user -> NakContext.trainClassifier(liblinerConfig, featurizer, examples)
+      val examples: Seq[Example[Boolean, Counter[String, Double]]] = countStringExamples(ts.map { case (t, pn) =>
+        Example(userClassifys.get(t).map(_.interresting).getOrElse(false), pn, t)
+      })
+      user -> naiveBayes.train(examples)
     }
   }
 }
 
 object ClassifyService {
 
-  case class NewUserClassifiers(userClassifiers: Map[String, IndexedClassifier[String] with FeaturizedClassifier[String, String]])
+  case class NewUserClassifiers(userClassifiers: Map[String, NaiveBayes[Boolean, String]])
 
 }
