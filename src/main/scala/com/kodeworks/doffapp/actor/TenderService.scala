@@ -16,8 +16,7 @@ import akka.pattern.pipe
 import akka.pattern.ask
 import scala.collection.mutable
 
-class
-TenderService(ctx: Ctx) extends Actor with ActorLogging {
+class TenderService(ctx: Ctx) extends Actor with ActorLogging {
 
   import ctx._
 
