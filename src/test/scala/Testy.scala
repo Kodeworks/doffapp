@@ -1,13 +1,14 @@
-import com.kodeworks.doffapp.nlp.BowFeaturizer
+import com.kodeworks.doffapp.TestCtx
+import com.kodeworks.doffapp.ctx.Nlp
+import com.kodeworks.doffapp.nlp.{MostUsedWords, BagOfWords, BowTfIdfFeaturizer}
 import nak.NakContext
-import nak.classify.NaiveBayes
 import nak.core.LiblinearClassifier
 import nak.data.{ExactFeatureMap, Example, FeatureObservation, TfidfBatchFeaturizer}
 import nak.liblinear.LiblinearConfig
 
 object Testy extends App {
-  val trainer = new NaiveBayes.Trainer[String, String]()
-  val trainingData = Seq(
+
+  val trainingData: Seq[(Int, String)] = Seq(
     (1, "omsorg bolig i ål sentrum"),
     (1, "evaluering av tjeneste tilbud til person med behov for lindre omsorg"),
     (1, "vikartjeneste til omsorg sektor i kristiansund kommune"),
@@ -35,13 +36,14 @@ object Testy extends App {
     (0, "rammeavtale for kjøp av kontor rekvisita"),
     (0, "ma e rammeavtale for kjøp av drosje tjeneste for nrk i bergen og trondheim")
   )
-  val testData = Seq(
+  val testData: Seq[(Int, String)] = Seq(
     (1, "anskaffelse av heldøgns bo og omsorg tjeneste for en bruker"), //
     (1, "rauland omsorg senter ombygging ventilasjon anlegg"), //correct on all
     (0, "avklaring med jobbsøk og praksis") //error on all
   )
 
   //Naive Bayes
+  //  val trainer = new NaiveBayes.Trainer[String, String]()
   //  def toNbData(data: Seq[(Int, String)]): Seq[Example[String, Counter[String, Double]]] =
   //    data.map(t => Example(t._1.toString, Counter.count(t._2.split(" "): _*).mapValues(_.toDouble)))
   //  val nbExamples = toNbData(trainingData)
@@ -53,6 +55,9 @@ object Testy extends App {
   //  }
   //  println
 
+  val ctx = new TestCtx {}
+  val bow = new BagOfWords(ctx, trainingData.map(_._2))
+
   //Bag of Words
   def toBowData(data: Seq[(Int, String)]) =
     data.map(t => Example(t._1.toString, t._2))
@@ -60,32 +65,29 @@ object Testy extends App {
   val bowExamples = toBowData(trainingData)
   val bowTest = toBowData(testData)
 
-  val bowFeaturizer = new BowFeaturizer()
-  val liblinearConfig = LiblinearConfig(cost = 5d, eps = .1)
   //TODO play with liblinearConfig
-  val bowClassifier = NakContext.trainClassifier(liblinearConfig, bowFeaturizer, bowExamples)
-  val lmap: Map[String, Int] = bowClassifier.asInstanceOf[LiblinearClassifier].lmap
-  bowTest.foreach { bt =>
-    val f1 = bowClassifier.evalRaw(bt.features)
-      .zipWithIndex.map { case (r, i) => bowClassifier.labelOfIndex(i) -> r }.toMap.toList.sortBy(_._1)
-    println(f1.mkString(", "))
-  }
-  println
+  //  val bowClassifier = NakContext.trainClassifier(liblinearConfig, bowFeaturizer, bowExamples)
+  //  val lmap: Map[String, Int] = bowClassifier.asInstanceOf[LiblinearClassifier].lmap
+  //  bowTest.foreach { bt =>
+  //    val f1 = bowClassifier.evalRaw(bt.features)
+  //      .zipWithIndex.map { case (r, i) => bowClassifier.labelOfIndex(i) -> r }.toMap.toList.sortBy(_._1)
+  //    println(f1.mkString(", "))
+  //  }
+  //  println
 
   //TfIdf
   val tfidfBatchFeaturizer = new TfidfBatchFeaturizer[String](0)
-  //test without 0, that is, 2 instead
   val tfidfExamples: Seq[Example[Int, Seq[FeatureObservation[Int]]]] =
-    tfidfBatchFeaturizer(bowExamples).map(_.map(_.map(_.map(bowClassifier.indexOfFeature(_).get)).sortBy(_.feature)).relabel(bowClassifier.indexOfLabel(_)))
-  val tfidfTest: Seq[Example[String, Seq[FeatureObservation[String]]]] = bowTest.map(_.map(bowFeaturizer(_)))
-  val tfidfClassifier = NakContext.trainClassifier(liblinearConfig, tfidfExamples,
-    lmap,
-    bowClassifier.asInstanceOf[LiblinearClassifier].fmap.asInstanceOf[ExactFeatureMap].fmap)
+    tfidfBatchFeaturizer(bowExamples).map(_.map(_.map(_.map(bow.classifier.indexOfFeature(_).get)).sortBy(_.feature)).relabel(bow.classifier.indexOfLabel(_)))
+//  val tfidfTest: Seq[Example[String, Seq[FeatureObservation[String]]]] = bowTest.map(_.map(bowFeaturizer(_)))
+  val tfidfClassifier = NakContext.trainClassifier(bow.nlp.liblinearConfig, tfidfExamples,
+  bow.lmap,
+    bow.fmap)
   //  val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
   //  val stopwords: Set[String] = leastSignificantWords.take(30).map(_._1).toSet
-  tfidfTest.foreach { tt =>
-    val r2 = tfidfClassifier.evalUnindexed(tt.features)
-      .zipWithIndex.map { case (r, i) => bowClassifier.labelOfIndex(i) -> r }.toMap.toList.sortBy(_._1)
-    println(r2.mkString(", "))
-  }
+//  tfidfTest.foreach { tt =>
+//    val r2 = tfidfClassifier.evalUnindexed(tt.features)
+//      .zipWithIndex.map { case (r, i) => bowClassifier.labelOfIndex(i) -> r }.toMap.toList.sortBy(_._1)
+//    println(r2.mkString(", "))
+//  }
 }
