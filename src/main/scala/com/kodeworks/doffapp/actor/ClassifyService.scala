@@ -87,7 +87,7 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
                 complete(400 -> "You have not yet classified any tenders. Classify ~5 tenders and try again")
             }
           } ~
-        complete(NotFound)
+          complete(NotFound)
       } ~
         get {
           log.info("classify")
@@ -144,13 +144,18 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
         }.mkString(" ")
       )
       classifierFactory = new ClassifierFactory(ctx, processedNames.map(_._2).toSeq)
-      //TODO regenerate classifers for all users <--- IMPORTANT
+      regenerateClassifiers(userClassifiers.map(_._1).toSeq)
     }
   }
-//TODO think about reclassifications
+
+  //TODO think about reclassifications
   def newClassifys(cs: Seq[Classify]) {
     classifys ++= cs
-    val newUserClassifers = cs.map(_.user).distinct.map(user => user -> classifier(user))
+    regenerateClassifiers(cs.map(_.user).distinct)
+  }
+
+  def regenerateClassifiers(users: Seq[String]) {
+    val newUserClassifers = users.map(user => user -> classifier(user))
     log.info("Classifier updated for users {}", newUserClassifers.map(_._1).mkString(", "))
     userClassifiers ++= newUserClassifers
     //TODO actually classify all tenders for each user
