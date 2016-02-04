@@ -16,7 +16,7 @@ trait Wordbank {
 }
 
 trait WordbankImpl extends Wordbank {
-  this: Cfg with Prop with Files =>
+  this: Prop with Files =>
   println("Loading Wordbank")
   override val wordbankWords: List[Word] = {
     implicit val codec = wordbankCodec
@@ -33,7 +33,7 @@ trait WordbankImpl extends Wordbank {
   override val wordbankWordsFullToBases: Map[String, List[String]] = wordbankWords.groupBy(_.full).map(w => w._1 -> w._2.map(_.base))
   override val wordbankWordsBaseToFulls: Map[String, List[String]] = wordbankWords.groupBy(_.base).map(w => w._1 -> w._2.map(_.full))
 
-  override def wordbankWordsFullToBase(word: String)=
+  override def wordbankWordsFullToBase(word: String) =
     wordbankWordsFullToBases.get(word).map {
       case bases if bases.contains(word) => word
       case base :: _ => base

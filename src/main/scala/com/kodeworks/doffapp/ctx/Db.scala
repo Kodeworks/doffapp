@@ -8,9 +8,7 @@ import slick.driver.JdbcProfile
 import slickext.macros.table
 
 trait Db {
-  this: Ctx =>
-  println("Loading Db")
-  val dbConfig = DatabaseConfig.forConfig[JdbcProfile](dbType)
+  val dbConfig: DatabaseConfig[JdbcProfile]
 
   import dbConfig.driver.api._
 
@@ -26,6 +24,16 @@ trait Db {
   @table[CrawlData]
   class CrawlDatas
 
+  val tableQuerys: List[TableQuery[_ <: Table[_]]]
+  val tables: Map[Class[_], TableQuery[_ <: Table[_]]]
+}
+
+trait DbImpl extends Db {
+  this: Prop =>
+  println("Loading Db")
+  val dbConfig = DatabaseConfig.forConfig[JdbcProfile](dbType)
+
+  import dbConfig.driver.api._
 
   val tableQuerys = List(
     Tenders, Users, Classifys, CrawlDatas
@@ -36,4 +44,5 @@ trait Db {
     classOf[User] -> Users,
     classOf[Classify] -> Classifys,
     classOf[CrawlData] -> CrawlDatas)
+
 }

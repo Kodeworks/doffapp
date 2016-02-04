@@ -1,5 +1,5 @@
 import com.kodeworks.doffapp.TestCtx
-import com.kodeworks.doffapp.ctx.Nlp
+import com.kodeworks.doffapp.ctx.{NlpImpl, Nlp}
 import com.kodeworks.doffapp.nlp.{MostUsedWords, BagOfWords, BowTfIdfFeaturizer}
 import nak.NakContext
 import nak.core.LiblinearClassifier
@@ -55,7 +55,10 @@ object Testy extends App {
   //  }
   //  println
 
-  val ctx = new TestCtx {}
+  trait Ctx extends TestCtx {
+    override val mostUsedWordsTop64: Set[String] = Set()
+  }
+  object ctx extends Ctx with NlpImpl
   val bow = new BagOfWords(ctx, trainingData.map(_._2))
 
   //Bag of Words
@@ -79,15 +82,15 @@ object Testy extends App {
   val tfidfBatchFeaturizer = new TfidfBatchFeaturizer[String](0)
   val tfidfExamples: Seq[Example[Int, Seq[FeatureObservation[Int]]]] =
     tfidfBatchFeaturizer(bowExamples).map(_.map(_.map(_.map(bow.classifier.indexOfFeature(_).get)).sortBy(_.feature)).relabel(bow.classifier.indexOfLabel(_)))
-//  val tfidfTest: Seq[Example[String, Seq[FeatureObservation[String]]]] = bowTest.map(_.map(bowFeaturizer(_)))
+  //  val tfidfTest: Seq[Example[String, Seq[FeatureObservation[String]]]] = bowTest.map(_.map(bowFeaturizer(_)))
   val tfidfClassifier = NakContext.trainClassifier(bow.nlp.liblinearConfig, tfidfExamples,
-  bow.lmap,
+    bow.lmap,
     bow.fmap)
   //  val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
   //  val stopwords: Set[String] = leastSignificantWords.take(30).map(_._1).toSet
-//  tfidfTest.foreach { tt =>
-//    val r2 = tfidfClassifier.evalUnindexed(tt.features)
-//      .zipWithIndex.map { case (r, i) => bowClassifier.labelOfIndex(i) -> r }.toMap.toList.sortBy(_._1)
-//    println(r2.mkString(", "))
-//  }
+  //  tfidfTest.foreach { tt =>
+  //    val r2 = tfidfClassifier.evalUnindexed(tt.features)
+  //      .zipWithIndex.map { case (r, i) => bowClassifier.labelOfIndex(i) -> r }.toMap.toList.sortBy(_._1)
+  //    println(r2.mkString(", "))
+  //  }
 }

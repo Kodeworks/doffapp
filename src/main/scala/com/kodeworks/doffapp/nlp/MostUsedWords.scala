@@ -1,15 +1,21 @@
 package com.kodeworks.doffapp.nlp
 
-import com.kodeworks.doffapp.ctx.{Ctx, Cfg, Files, Prop}
+import com.kodeworks.doffapp.ctx._
 import com.kodeworks.doffapp.nlp.wordbank.Wordbank
 
 import scala.io.Source
 import scala.util.Try
 import scala.util.parsing.combinator.RegexParsers
 
-trait MostUsedWords extends Cfg with Prop with Files with Wordbank {
+trait MostUsedWords {
+  val mostUsedWords: List[String]
+  val mostUsedWordsTop64: Set[String]
+}
+
+trait MostUsedWordsImpl extends MostUsedWords {
+  this: Wordbank with Files =>
   println("Loading MostUsedWords")
-  val mostUsedWords: List[String] = {
+  override val mostUsedWords: List[String] = {
     implicit val codec = mostUsedWordsCodec
     def fromSource(src: => Source): Option[List[String]] =
       Try(
@@ -30,5 +36,5 @@ trait MostUsedWords extends Cfg with Prop with Files with Wordbank {
     fromSource(mostUsedWordsSource).getOrElse(Nil)
   }.map(wordbankWordsFullToBase _)
 
-  val mostUsedWordsTop64 = mostUsedWords.take(64).toSet
+  override val mostUsedWordsTop64 = mostUsedWords.take(64).toSet
 }

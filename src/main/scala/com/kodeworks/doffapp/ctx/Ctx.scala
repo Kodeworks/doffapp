@@ -1,6 +1,6 @@
 package com.kodeworks.doffapp.ctx
 
-import com.kodeworks.doffapp.nlp.MostUsedWords
+import com.kodeworks.doffapp.nlp.{MostUsedWordsImpl, MostUsedWords}
 import com.kodeworks.doffapp.nlp.wordbank.{WordbankImpl, Wordbank}
 
 trait Ctx
@@ -14,13 +14,15 @@ trait Ctx
     with Actors
     with Http
 
-object Ctx extends Ctx
+trait CtxImpl extends Ctx
   with CfgImpl
   with PropImpl
   with FilesImpl
   with WordbankImpl
-  with MostUsedWords
-  with Nlp
-  with Db
-  with Actors
-  with Http
+  with MostUsedWordsImpl
+  with NlpImpl
+  with DbImpl
+  with ActorsImpl
+  with HttpImpl
+
+object Ctx extends CtxImpl
