@@ -1,6 +1,6 @@
 package com.kodeworks.doffapp.actor
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{ActorRef, Actor, ActorLogging}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
@@ -26,10 +26,8 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
   implicit val to = timeout
 
   val tenders = mutable.Map[String, Tender]()
-  val processedNames = mutable.Map[String, String]()
-  val dict = mutable.Map() ++= wordbankDict
-  val spellingCorrector = new SpellingCorrector(dict)
-  val compoundSplitter = new CompoundSplitter(ctx)
+
+  var tendersListener: Option[ActorRef] = None
 
   override def preStart {
     context.become(initing)
@@ -53,12 +51,7 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
 
   val route = pathPrefix("tender") {
     get {
-      path("processed") {
-        complete(processedNames.map(kv => Map("doffinReference" -> kv._1, "name" -> kv._2)))
-      } ~ {
-        log.info("pff")
-        complete(tenders.map(_._2))
-      }
+      complete(tenders.map(_._2))
     }
   }
 
@@ -66,10 +59,12 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
     case rc: RequestContext =>
       log.info("tenderservice rc, thread {}", Thread.currentThread().getId + " " + Thread.currentThread().getName)
       route(rc).pipeTo(sender)
-    case GetTenderProcessedNames =>
-      sender ! GetTenderProcessedNamesReply(processedNames.toMap)
-    case GetTenderProcessedNames(ts) =>
-      sender ! GetTenderProcessedNamesReply(processedNames.filter(tpn => ts.contains(tpn._1)).toMap)
+    case ListenTenders =>
+      tendersListener = Some(sender)
+      sender ! ListenTendersReply(tenders.values.toSeq)
+    case ListenTenders(ts) =>
+      tendersListener = Some(sender)
+      sender ! ListenTendersReply(tenders.filter(dt => ts.contains(dt._1)).values.toSeq)
     case SaveTenders(ts) =>
       val newTenders0 = ts.filter(t => !tenders.contains(t.doffinReference))
       log.info("Got {} tenders, of which {} were new", ts.size, newTenders0.size)
@@ -85,22 +80,7 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
   }
 
   def newTenders(ts: Seq[Tender]) {
-    val tendersDict: Map[String, Int] = SpellingCorrector.dict(ts.map(_.name.toLowerCase).mkString(" "))
-    tendersDict.foreach { case (word, count) =>
-      dict(word) = {
-        val count1 = count + dict.getOrElse(word, 0)
-        if (0 >= count1) Int.MaxValue
-        else count1
-      }
-    }
-    processedNames ++= ts.map(tender => tender.doffinReference ->
-      SpellingCorrector.words(tender.name.toLowerCase).flatMap { s =>
-        //TODO add to common corrections
-        val correct: String = spellingCorrector.correct(s)
-        //TODO add full word to word list. Guess base form and other full forms based on second word in split
-        compoundSplitter.split(correct).map(wordbankWordsFullToBase _)
-      }.mkString(" ")
-    )
     tenders ++= ts.map(t => t.doffinReference -> t)
+    tendersListener.foreach(_ ! ListenTendersReply(ts))
   }
 }

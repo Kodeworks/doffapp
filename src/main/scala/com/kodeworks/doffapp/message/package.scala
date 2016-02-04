@@ -16,9 +16,7 @@ package object message {
 
   case class SaveUsers(users: Seq[User])
 
-  case class GetTenderProcessedNames(tenders: Set[String])
+  case class ListenTenders(tenders: Set[String])
 
-  case class GetTenderProcessedNamesReply(processedNames: Map[String, String])
-
-
+  case class ListenTendersReply(tenders:Seq[Tender])
 }

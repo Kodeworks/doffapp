@@ -94,7 +94,6 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
 
   override def receive = {
     case GoDown => goDown
-
     case Load(persistables@_*) =>
       val zelf = self
       val zender = sender
@@ -112,6 +111,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
         .map { res =>
           if (res._1.nonEmpty) {
             //            zelf ! Load(res._1.map(_._1): _*)
+            log.error(res._1.asInstanceOf[Iterable[(_, Throwable)]].head._2, "Load db error")
             zelf ! GoDown
           }
           res
@@ -135,6 +135,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
         .map(_.toList.separate)
         .map { res =>
           if (res._1.nonEmpty) {
+            log.error(res._1.asInstanceOf[Iterable[(_, Throwable)]].head._2, "Insert db error")
             zelf ! GoDown
             zelf ! Insert(res._1.map(_._1): _*)
           }
@@ -160,6 +161,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
         .map(_.toList.separate)
         .map { res =>
           if (res._1.nonEmpty) {
+            log.error(res._1.asInstanceOf[Iterable[(_, Throwable)]].head._2, "Upsert db error")
             zelf ! GoDown
             zelf ! Upsert(res._1.map(_._1): _*)
           }

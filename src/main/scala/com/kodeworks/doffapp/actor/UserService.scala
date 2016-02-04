@@ -55,6 +55,7 @@ class UserService(ctx: Ctx) extends Actor with ActorLogging {
         path("create") {
           touchOptionalSession(oneOff, usingCookies) {
             case Some(username) =>
+              //TODO check username. Should not be a problem unless we've wiped users or something
               complete(400 -> s"You are already logged in as $username. Please log out before trying to create a new user")
             case _ =>
               val user = User()

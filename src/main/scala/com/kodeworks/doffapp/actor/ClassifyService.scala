@@ -1,30 +1,22 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RequestContext
 import akka.stream.ActorMaterializer
-import breeze.linalg.Counter
 import com.kodeworks.doffapp
-import com.kodeworks.doffapp.actor.ClassifyService.NewUserClassifiers
 import com.kodeworks.doffapp.actor.DbService.{Inserted, Insert, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message._
 import com.kodeworks.doffapp.model.{Tender, Classify}
 import akka.pattern.{pipe, ask}
-import nak.NakContext
-import nak.classify.NaiveBayes
-import nak.core.{FeaturizedClassifier, IndexedClassifier}
-import nak.data.{BowFeaturizer, FeatureObservation, Example}
 import scala.collection.mutable
 import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
 import Classify.Json._
 import doffapp.nlp._
 import com.softwaremill.session.SessionDirectives._
 import com.softwaremill.session.SessionOptions._
-
-import scala.concurrent.Future
+import akka.http.scaladsl.model.StatusCodes._
 
 //TODO custom trainClassifier that considers synonyms and gives them an appropriate weight,
 // so that "person" also gives some weight to "human", and that removes variations on words (stemming).
@@ -39,15 +31,25 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
 
   implicit def sm = sessionManager
 
+  val dict = mutable.Map() ++= wordbankDict
+  val spellingCorrector = new SpellingCorrector(dict)
+  val compoundSplitter = new CompoundSplitter(ctx)
+
+  var classifierFactory: ClassifierFactory = null
+  val processedNames = mutable.Map[String, String]()
   val classifys = mutable.Set[Classify]()
-  val userClassifiers = mutable.Map[String, NaiveBayes[Boolean, String]]()
+  val userClassifiers = mutable.Map[String, Classifier]()
 
   override def preStart {
     context.become(initing)
-    dbService ! Load(classOf[Classify])
+    tenderService ! ListenTenders
   }
 
   val initing: Receive = {
+    case ListenTendersReply(tenders) =>
+      log.info("Got {} tenders", tenders.size)
+      newTenders(tenders)
+      dbService ! Load(classOf[Classify])
     case Loaded(data, errors) =>
       if (errors.nonEmpty) {
         log.error("Critical databases error. Error loading data during boot.")
@@ -64,28 +66,37 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
 
   val route =
     (pathPrefix("classify") & requiredSession(oneOff, usingCookies)) { user =>
-      (get & path("tender" / Segment)) { tender =>
-        userClassifiers.get(user) match {
-          case Some(classifier) =>
-            (rc: RequestContext) =>
-              tenderService ? GetTenderProcessedNames(Set(tender)) flatMap {
-                case GetTenderProcessedNamesReply(pns) if pns.nonEmpty =>
-                  val cs = countString(pns(tender))
-                  val classify: Boolean = classifier.classify(cs)
-                  val predict = classifier.scores(cs).toMap.map { case (k, v) => k.toString -> v }
-                  rc.complete(predict)
-                case _ => rc.complete("No such tender")
-              }
-          case _ =>
-            complete(400 -> "You have not yet classified any tenders. Classify ~5 tenders and try again")
-        }
+      (get & pathPrefix("tender")) {
+        path("processed") {
+          log.info("classify/tender/processed")
+          complete(processedNames.map(kv => Map("doffinReference" -> kv._1, "name" -> kv._2)))
+        } ~
+          path(Segment) { tender =>
+            log.info("classify/tender/[tender]")
+            userClassifiers.get(user) match {
+              case Some(classifier) =>
+                (rc: RequestContext) =>
+                  processedNames.get(tender) match {
+                    case Some(pn) =>
+                      rc.complete(
+                        classifier.tfidf(pn).map(kv => "tfidf_" + kv._1 -> kv._2) ++
+                          classifier.bow(pn).map(kv => "bow_" + kv._1 -> kv._2))
+                    case _ => rc.complete("No such tender")
+                  }
+              case _ =>
+                complete(400 -> "You have not yet classified any tenders. Classify ~5 tenders and try again")
+            }
+          } ~
+        complete(NotFound)
       } ~
         get {
+          log.info("classify")
           complete(classifys.filter(_.user == user))
         } ~
-        (post & path(Segment / IntNumber)) { (tenderDoffinReference, classifyNumber) =>
-          validate(0 == classifyNumber || 1 == classifyNumber, "Classify-number must be 0 (uninterresting) or 1 (interresting)") {
-            val classify = Classify(user, tenderDoffinReference, if (1 == classifyNumber) true else false)
+        (post & path(Segment / IntNumber)) { (tenderDoffinReference, label) =>
+          validate(0 == label || 1 == label, "Label must be 0 (uninterresting) or 1 (interresting)") {
+            log.info("New classify: {} -> {}", tenderDoffinReference, label)
+            val classify = Classify(user, tenderDoffinReference, label.toString)
             self ! SaveClassifys(Seq(classify))
             complete(classify)
           }
@@ -97,42 +108,64 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
       route(rc).pipeTo(sender)
     case SaveClassifys(cs) =>
       val newClassifys0 = cs.filter(c => !classifys.contains(c))
-      log.info("Got {} classifys, of which {} were new", cs.size, newClassifys0.size)
-      newClassifys(cs)
-      if (newClassifys0.nonEmpty) dbService ! Insert(newClassifys0: _*)
-    case NewUserClassifiers(ucs) =>
-      log.info("Classifier updated for users {}", ucs.keys.mkString(", "))
-      userClassifiers ++= ucs
+      val newClassifys1 = newClassifys0.filter(c => processedNames.contains(c.tender))
+      log.info("Got {} classifys, of which {} were new, of which {} had valid tender id", cs.size, newClassifys0.size, newClassifys1.size)
+      if (newClassifys1.nonEmpty) {
+        newClassifys(newClassifys1)
+        dbService ! Insert(newClassifys1: _*)
+      }
     case Inserted(data, errors) =>
       log.info("Inserted classifys: {}", data)
       classifys ++= data.asInstanceOf[Map[Classify, Option[Long]]].map {
         case (c, id) => c.copy(id = id)
       }
+    case ListenTendersReply(tenders) =>
+      newTenders(tenders)
     case x => log.error("Unknown " + x)
   }
 
+  def newTenders(ts: Seq[Tender]) {
+    if (ts.nonEmpty) {
+      log.info("Got {} new tenders", ts.size)
+      val tendersDict: Map[String, Int] = SpellingCorrector.dict(ts.map(_.name.toLowerCase).mkString(" "))
+      tendersDict.foreach { case (word, count) =>
+        dict(word) = {
+          val count1 = count + dict.getOrElse(word, 0)
+          if (0 >= count1) Int.MaxValue
+          else count1
+        }
+      }
+      processedNames ++= ts.map(tender => tender.doffinReference ->
+        SpellingCorrector.words(tender.name.toLowerCase).flatMap { s =>
+          //TODO add to common corrections
+          val correct: String = spellingCorrector.correct(s)
+          //TODO add full word to word list. Guess base form and other full forms based on second word in split
+          compoundSplitter.split(correct).map(wordbankWordsFullToBase _)
+        }.mkString(" ")
+      )
+      classifierFactory = new ClassifierFactory(ctx, processedNames.map(_._2).toSeq)
+      //TODO regenerate classifers for all users <--- IMPORTANT
+    }
+  }
+//TODO think about reclassifications
   def newClassifys(cs: Seq[Classify]) {
     classifys ++= cs
-    val tendersFuture: Future[Map[String, String]] = (tenderService ? GetTenderProcessedNames).mapTo[GetTenderProcessedNamesReply].map(_.processedNames)
-    Future.sequence(cs.map(_.user).distinct.map(user => newUserClassifys(user, tendersFuture)))
-      .map(ucs => NewUserClassifiers(ucs.toMap))
-      .pipeTo(self)
-    //TODO actually classify all tenders
+    val newUserClassifers = cs.map(_.user).distinct.map(user => user -> classifier(user))
+    log.info("Classifier updated for users {}", newUserClassifers.map(_._1).mkString(", "))
+    userClassifiers ++= newUserClassifers
+    //TODO actually classify all tenders for each user
   }
 
-  def newUserClassifys(user: String, tendersFuture: Future[Map[String, String]]): Future[(String, NaiveBayes[Boolean, String])] = {
-    val userClassifys = classifys.filter(_.user == user).map(c => c.tender -> c).toMap
-    tendersFuture.map { ts =>
-      val examples: Seq[Example[Boolean, Counter[String, Double]]] = countStringExamples(ts.map { case (t, pn) =>
-        Example(userClassifys.get(t).map(_.interresting).getOrElse(false), pn, t)
-      })
-      user -> naiveBayes.train(examples)
+  def classifier(user: String): Classifier = {
+    val userClassifys: Map[String, Classify] = classifys.filter(_.user == user).map(c => c.tender -> c).toMap
+    val examples = processedNames.toSeq.collect { case (t, pn) if userClassifys.contains(t) =>
+      userClassifys(t).label -> pn
     }
+    // classifierFactory can be null, but only when we haven't seen any tenders.
+    // When we get here, we are guaranteed to have seen at least one tender.
+    classifierFactory.classifier(examples)
   }
 }
 
 object ClassifyService {
-
-  case class NewUserClassifiers(userClassifiers: Map[String, NaiveBayes[Boolean, String]])
-
 }

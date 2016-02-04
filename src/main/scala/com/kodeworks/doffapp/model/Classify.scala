@@ -3,7 +3,7 @@ package com.kodeworks.doffapp.model
 case class Classify(
                      user: String,
                      tender: String,
-                     interresting: Boolean = true,
+                     label: String = "1",
                      time: Long = System.currentTimeMillis,
                      id: Option[Long] = None) {
   override def equals(other: Any): Boolean = other match {
