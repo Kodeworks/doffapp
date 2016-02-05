@@ -71,5 +71,6 @@ class BootService(val ctx: Ctx) extends Actor with ActorLogging {
 
   override def postStop {
     stopInitTimeoutTimer
+    log.info("\n\n\n----==== BOOT DONE | HAVE FUN ====----\n\n")
   }
 }
