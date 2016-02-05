@@ -22,13 +22,4 @@ case class Classify(
 }
 
 object Classify {
-
-  object Json {
-
-    import argonaut.CodecJson.derive
-    import argonaut._
-
-    implicit val ClassifyCodec = derive[Classify]
-  }
-
 }

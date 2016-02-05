@@ -18,8 +18,10 @@ trait NlpImpl extends Nlp{
   this: MostUsedWords =>
   println("Loading Nlp")
   override val liblinearConfig = LiblinearConfig(cost = 5d, eps = .1)
-  override val tfidfBatchFeaturizer = new TfidfBatchFeaturizer[String](0, mostUsedWordsTop64)
-  override val bowFeaturizer = new BowTfIdfFeaturizer(mostUsedWordsTop64)
+  //TODO skip stopwords for now, increases number of unclassifiable tenders to unreasonable numbers (375 -> 890)
+  //consequence unknown, maybe we can utilize it
+  override val tfidfBatchFeaturizer = new TfidfBatchFeaturizer[String](0)//, mostUsedWordsTop64)
+  override val bowFeaturizer = new BowTfIdfFeaturizer()//mostUsedWordsTop64)
   override val naiveBayes = new NaiveBayes.Trainer[Boolean, String]()
   override val classifyLabels = Array("0", "1")
 }

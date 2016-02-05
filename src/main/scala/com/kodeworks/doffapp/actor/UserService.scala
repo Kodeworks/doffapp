@@ -1,21 +1,23 @@
 package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
+import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.server.RouteConcatenation.enhanceRouteWithConcatenation
+import akka.pattern.pipe
 import akka.stream.ActorMaterializer
+import argonaut.Argonaut._
+import argonaut.Shapeless._
+import argonaut._
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message.{InitFailure, InitSuccess, SaveUsers}
 import com.kodeworks.doffapp.model.User
-
-import scala.collection.mutable
-import akka.pattern.pipe
-import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
-import User.Json._
 import com.softwaremill.session.SessionDirectives._
 import com.softwaremill.session.SessionOptions._
+
+import scala.collection.mutable
 
 class UserService(ctx: Ctx) extends Actor with ActorLogging {
 

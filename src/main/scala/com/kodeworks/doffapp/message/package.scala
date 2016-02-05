@@ -1,6 +1,6 @@
 package com.kodeworks.doffapp
 
-import com.kodeworks.doffapp.model.{User, Classify, Tender}
+import com.kodeworks.doffapp.model.{Classification, User, Classify, Tender}
 
 package object message {
 
@@ -15,6 +15,10 @@ package object message {
   case class SaveClassifys(classifys: Seq[Classify])
 
   case class SaveUsers(users: Seq[User])
+
+  case class GetClassifications(user:String)
+
+  case class GetClassificationsReply(classifications:Option[Seq[Classification]])
 
   case class ListenTenders(tenders: Set[String])
 

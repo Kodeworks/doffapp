@@ -2,16 +2,16 @@ package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging}
 import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
-import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RequestContext
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
+import argonaut.Argonaut._
+import argonaut.Shapeless._
+import argonaut._
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message._
-import com.kodeworks.doffapp.model.Classification.Json._
-import com.kodeworks.doffapp.model.Classify.Json._
 import com.kodeworks.doffapp.model.{Classification, Classify, Tender}
 import com.kodeworks.doffapp.nlp._
 import com.softwaremill.session.SessionDirectives._
@@ -77,24 +77,36 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
         complete(processedNames.map(kv => Map("doffinReference" -> kv._1, "name" -> kv._2)))
       } ~
         (get & pathPrefix("classification")) {
-          path(Segment) { tender =>
-            log.info("Get tfidf and bow classifications for tender {}", tender)
-            userClassifications.get(user).flatMap(
-              _.find(_.tender == tender)) match {
-              case Some(classification) => complete(classification)
-              case _ => userClassifiers.get(user) match {
-                case Some(classifier) =>
-                  (rc: RequestContext) =>
-                    processedNames.get(tender) match {
-                      case Some(pn) =>
-                        rc.complete(classification(user, tender))
-                      case _ => rc.complete("No such tender")
-                    }
-                case _ =>
-                  complete(400 -> "You have not yet classified any tenders. Classify ~5 tenders and try again")
-              }
+          path("tfidf") {
+            userClassifications.get(user) match {
+              case Some(classifications) => complete(classifications.sortBy(-_.tfidf("1")))
+              case _ => complete("No classifications for user")
             }
-          } ~ {
+          } ~
+            path("bow") {
+              userClassifications.get(user) match {
+                case Some(classifications) => complete(classifications.sortBy(-_.bow("1")))
+                case _ => complete("No classifications for user")
+              }
+            } ~
+            path(Segment) { tender =>
+              log.info("Get tfidf and bow classifications for tender {}", tender)
+              userClassifications.get(user).flatMap(
+                _.find(_.tender == tender)) match {
+                case Some(classification) => complete(classification)
+                case _ => userClassifiers.get(user) match {
+                  case Some(classifier) =>
+                    rc =>
+                      processedNames.get(tender) match {
+                        case Some(pn) =>
+                          rc.complete(classification(user, tender))
+                        case _ => rc.complete("No such tender")
+                      }
+                  case _ =>
+                    complete(400 -> "You have not yet classified any tenders. Classify ~5 tenders and try again")
+                }
+              }
+            } ~ {
             userClassifications.get(user) match {
               case Some(classifications) => complete(classifications)
               case _ => complete("No classifications for user")
@@ -131,6 +143,9 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
       classifys ++= data.asInstanceOf[Map[Classify, Option[Long]]].map {
         case (c, id) => c.copy(id = id)
       }
+    case GetClassifications(user) =>
+      log.info("Get classifications for user {}", user)
+      sender ! GetClassificationsReply(userClassifications.get(user).map(_.toSeq.sortBy(-_.tfidf("1"))))
     case ListenTendersReply(tenders) =>
       newTenders(tenders)
     case x => log.error("Unknown " + x)

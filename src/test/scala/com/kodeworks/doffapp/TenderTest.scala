@@ -3,7 +3,7 @@ package com.kodeworks.doffapp
 import java.time.Instant
 
 import akka.http.scaladsl.model.Uri.Path
-import argonaut.Json
+import argonaut._, Argonaut._, Shapeless._
 import com.kodeworks.doffapp.model.Tender
 import org.junit.{Assert, Test}
 
@@ -12,7 +12,6 @@ class TenderTest {
   @Test
   def testTenderCodec {
     import argonaut.Argonaut._
-    import Tender.Json._
 
     val tender = Tender(
       "NH3-kuldeanlegg",

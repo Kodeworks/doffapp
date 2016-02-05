@@ -17,13 +17,4 @@ case class Tender(
                  )
 
 object Tender {
-
-  object Json {
-
-    import argonaut.CodecJson.derive
-    import argonaut._
-
-    implicit val tenderCodec = derive[Tender]
-  }
-
 }

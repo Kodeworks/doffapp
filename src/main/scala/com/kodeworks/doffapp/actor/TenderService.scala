@@ -1,19 +1,21 @@
 package com.kodeworks.doffapp.actor
 
-import akka.actor.{ActorRef, Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RequestContext
+import akka.pattern.{ask, pipe}
 import akka.stream.ActorMaterializer
+import argonaut.Argonaut._
+import argonaut.Shapeless._
+import argonaut._
 import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message._
-import com.kodeworks.doffapp.model.{User, Tender}
-import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
-import akka.http.scaladsl.marshallers.argonaut.ArgonautSupport._
-import Tender.Json._
-import akka.pattern.pipe
+import com.kodeworks.doffapp.model.Tender
+import com.softwaremill.session.SessionDirectives._
+import com.softwaremill.session.SessionOptions._
 
-import akka.pattern.ask
 import scala.collection.mutable
 
 class TenderService(ctx: Ctx) extends Actor with ActorLogging {
@@ -24,6 +26,8 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
   implicit val ec = context.dispatcher
   implicit val to = timeout
+
+  implicit def sm = sessionManager
 
   val tenders = mutable.Map[String, Tender]()
 
@@ -49,11 +53,19 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
       log.error("Loading - unknown message" + x)
   }
 
-  val route = pathPrefix("tender") {
-    get {
-      complete(tenders.map(_._2))
+  val route =
+    (pathPrefix("tender") & requiredSession(oneOff, usingCookies)) { user =>
+      get {
+        path("relevant") {
+          rc => (classifyService ? GetClassifications(user)).mapTo[GetClassificationsReply].flatMap {
+            case GetClassificationsReply(Some(cs)) =>
+              rc.complete(cs.map(c => tenders(c.tender)->c))
+            case _ => rc.complete("No classifications")
+          }
+        } ~
+          complete(tenders.map(_._2))
+      }
     }
-  }
 
   override def receive = {
     case rc: RequestContext =>

@@ -185,35 +185,34 @@
         </dependency>
 
 
-        <!--
+
    <dependency>
        <groupId>com.chuusai</groupId>
        <artifactId>shapeless_2.11</artifactId>
        <version>${shapeless.version}</version>
    </dependency>
-
-   <dependency>
-       <groupId>com.typesafe.slick</groupId>
-       <artifactId>slick-codegen_2.11</artifactId>
-       <version>${slick.version}</version>
-   </dependency>
-
-   <dependency>
-       <groupId>com.zaxxer</groupId>
-       <artifactId>HikariCP</artifactId>
-       <version>${HikariCP.version}</version>
-   </dependency>
-
-
-   -->
-
         <!--
+           <dependency>
+               <groupId>com.typesafe.slick</groupId>
+               <artifactId>slick-codegen_2.11</artifactId>
+               <version>${slick.version}</version>
+           </dependency>
+
+           <dependency>
+               <groupId>com.zaxxer</groupId>
+               <artifactId>HikariCP</artifactId>
+               <version>${HikariCP.version}</version>
+           </dependency>
+
+
+           -->
+
         <dependency>
             <groupId>com.github.alexarchambault</groupId>
             <artifactId>argonaut-shapeless_2.11</artifactId>
             <version>${argonaut-shapeless.version}</version>
         </dependency>
-        -->
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

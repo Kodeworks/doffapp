@@ -38,17 +38,22 @@ class ClassifierFactory(nlp: Nlp, trainingData: Seq[String]) {
         map,
         lmap, fmap)
 
-      override def bow(words: String):Map[String, Double] =
-        bowClassifier.evalUnindexed(bowFeaturizer(words))
+      override def bow(words: String): Map[String, Double] = {
+        val x = bowClassifier.evalUnindexed(bowFeaturizer(words))
           .zipWithIndex.map { case (r, i) => bowClassifier0.labelOfIndex(i) -> r }.toMap
+        x
+      }
 
-      override def tfidf(words: String): Map[String, Double] =
-        tfidfClassifier.evalUnindexed(bowFeaturizer(words))
+      override def tfidf(words: String): Map[String, Double] = {
+        val x = tfidfClassifier.evalUnindexed(bowFeaturizer(words))
           .zipWithIndex.map { case (r, i) => bowClassifier0.labelOfIndex(i) -> r }.toMap
+        x
+      }
     }
 }
 
 trait Classifier {
   def bow(words: String): Map[String, Double]
+
   def tfidf(words: String): Map[String, Double]
 }
