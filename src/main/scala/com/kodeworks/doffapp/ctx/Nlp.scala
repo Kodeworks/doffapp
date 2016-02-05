@@ -2,7 +2,6 @@ package com.kodeworks.doffapp.ctx
 
 import com.kodeworks.doffapp.nlp.{BowTfIdfFeaturizer, MostUsedWords}
 import nak.classify.NaiveBayes
-import nak.classify.NaiveBayes.Trainer
 import nak.data.TfidfBatchFeaturizer
 import nak.liblinear.LiblinearConfig
 
@@ -10,7 +9,7 @@ trait Nlp {
    val liblinearConfig: LiblinearConfig
    val tfidfBatchFeaturizer: TfidfBatchFeaturizer[String]
    val bowFeaturizer: BowTfIdfFeaturizer
-   val naiveBayes: Trainer[Boolean, String]
+   val naiveBayes: NaiveBayes.Trainer[String, String]
    val classifyLabels: Array[String]
 }
 
@@ -22,6 +21,6 @@ trait NlpImpl extends Nlp{
   //consequence unknown, maybe we can utilize it
   override val tfidfBatchFeaturizer = new TfidfBatchFeaturizer[String](0)//, mostUsedWordsTop64)
   override val bowFeaturizer = new BowTfIdfFeaturizer()//mostUsedWordsTop64)
-  override val naiveBayes = new NaiveBayes.Trainer[Boolean, String]()
+  override val naiveBayes = new NaiveBayes.Trainer[String, String]()
   override val classifyLabels = Array("0", "1")
 }

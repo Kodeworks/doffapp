@@ -7,7 +7,8 @@ case class Classification(
                            tender: String,
                            user: String,
                            tfidf: Map[String, Double],
-                           bow: Map[String, Double]
+                           bow: Map[String, Double],
+                           nb:Map[String, Double]
                          )
 
 object Classification {

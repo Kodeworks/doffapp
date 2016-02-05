@@ -66,7 +66,7 @@ trait TestCtx extends Ctx {
   override val liblinearConfig: LiblinearConfig = LiblinearConfig(cost = 5d, eps = .1)
   override val tfidfBatchFeaturizer: TfidfBatchFeaturizer[String] = null
   override val bowFeaturizer: BowTfIdfFeaturizer = null
-  override val naiveBayes: Trainer[Boolean, String] = null
+  override val naiveBayes: Trainer[String, String] = null
   override val classifyLabels: Array[String] = null
   override val dbConfig: DatabaseConfig[JdbcProfile] = null
   override val tableQuerys = null

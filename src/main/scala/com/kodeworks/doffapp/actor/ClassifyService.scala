@@ -232,7 +232,8 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
           tender,
           user,
           classifier.tfidf(pn),
-          classifier.bow(pn)
+          classifier.bow(pn),
+          classifier.nb(pn)
         )
       }
     }

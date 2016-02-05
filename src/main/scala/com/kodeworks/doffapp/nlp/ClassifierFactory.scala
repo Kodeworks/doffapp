@@ -1,9 +1,11 @@
 package com.kodeworks.doffapp.nlp
 
+import breeze.linalg.Counter
 import com.kodeworks.doffapp.ctx.Nlp
 import nak.NakContext
-import nak.core.{IndexedClassifier, LiblinearClassifier}
-import nak.data.{FeatureObservation, TfidfBatchFeaturizer, ExactFeatureMap, Example}
+import nak.classify.NaiveBayes
+import nak.core.LiblinearClassifier
+import nak.data.{ExactFeatureMap, Example, FeatureObservation}
 
 
 class ClassifierFactory(nlp: Nlp, trainingData: Seq[String]) {
@@ -38,16 +40,24 @@ class ClassifierFactory(nlp: Nlp, trainingData: Seq[String]) {
         map,
         lmap, fmap)
 
+      def toNbData(data: Seq[(String, String)]): Seq[Example[String, Counter[String, Double]]] =
+        data.map(t => Example(t._1, Counter.count(t._2.split(" "): _*).mapValues(_.toDouble)))
+
+      val nbExamples = toNbData(classifys)
+      val nbClassifier: NaiveBayes[String, String] = naiveBayes.train(nbExamples)
+
       override def bow(words: String): Map[String, Double] = {
-        val x = bowClassifier.evalUnindexed(bowFeaturizer(words))
+        bowClassifier.evalUnindexed(bowFeaturizer(words))
           .zipWithIndex.map { case (r, i) => bowClassifier0.labelOfIndex(i) -> r }.toMap
-        x
       }
 
       override def tfidf(words: String): Map[String, Double] = {
-        val x = tfidfClassifier.evalUnindexed(bowFeaturizer(words))
+        tfidfClassifier.evalUnindexed(bowFeaturizer(words))
           .zipWithIndex.map { case (r, i) => bowClassifier0.labelOfIndex(i) -> r }.toMap
-        x
+      }
+
+      override def nb(words: String): Map[String, Double] = {
+        nbClassifier.scores(Counter.count(words.split(" "): _*).mapValues(_.toDouble)).toMap
       }
     }
 }
@@ -56,4 +66,6 @@ trait Classifier {
   def bow(words: String): Map[String, Double]
 
   def tfidf(words: String): Map[String, Double]
+
+  def nb(words: String): Map[String, Double]
 }
