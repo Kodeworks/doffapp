@@ -2,7 +2,10 @@ package com.kodeworks.doffapp.actor
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server.RouteConcatenation.RouteWithConcatenation
+import akka.http.scaladsl.server._
+import Directives._
 import akka.http.scaladsl.server._
 import akka.pattern.{ask, pipe}
 import akka.stream.ActorMaterializer
@@ -55,11 +58,13 @@ class HttpService(ctx: Ctx) extends Actor with ActorLogging {
   }
 
   val route: Route =
-    userService ~
-      touchRequiredSession(oneOff, usingCookies) { session =>
-        tenderService ~
-          classifyService
-      }
+    purgeSlashes {
+      userService ~
+        touchRequiredSession(oneOff, usingCookies) { session =>
+          tenderService ~
+            classifyService
+        }
+    }
 
   override def receive = {
     case rc: RequestContext =>
@@ -76,4 +81,32 @@ object HttpService {
     StandardRoute(rc => (a ? rc).mapTo[RouteResult])
 
   implicit def actor2RouteConcat[A1](a: A1)(implicit ev: A1 => StandardRoute, to: Timeout): RouteWithConcatenation = new RouteWithConcatenation(a)
+
+  def mapPath(path: Path) = path match {
+    case p if !p.isEmpty =>
+      Path {
+        val path = p.toString
+        val firstColon = path.indexOf(";")
+        val firstQmark = path.indexOf("?")
+        val (pathColon, reqParams) =
+          if (-1 == firstQmark) (path, "")
+          else path.splitAt(firstQmark)
+        val (plainPath, pathParams) =
+          if (-1 == firstColon) (pathColon, "")
+          else path.splitAt(firstColon)
+        val pathSingleSlashes = plainPath
+          .replaceAll("/+", "/")
+        val pathNoLastSlash =
+          if (pathSingleSlashes.last == '/') pathSingleSlashes.substring(0, pathSingleSlashes.size - 1)
+          else pathSingleSlashes
+        val x = pathNoLastSlash + pathParams + reqParams
+        x
+      }
+    case p => p
+  }
+
+  val purgeSlashes: Directive0 =
+    mapRequestContext(_.mapRequest(r =>
+      r.copy(uri = r.uri.copy(path = mapPath(r.uri.path))))
+      .mapUnmatchedPath(mapPath _))
 }

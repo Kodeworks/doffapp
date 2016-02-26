@@ -14,16 +14,17 @@ import akka.util.ByteString
 import com.kodeworks.doffapp.actor.CrawlService._
 import com.kodeworks.doffapp.actor.DbService.{Load, Loaded, Upsert, Upserted}
 import com.kodeworks.doffapp.ctx.Ctx
-import com.kodeworks.doffapp.message.{SaveTenders, InitFailure, InitSuccess}
+import com.kodeworks.doffapp.message.{InitFailure, InitSuccess, NewTenders}
 import com.kodeworks.doffapp.model.{CrawlData, Tender}
-import com.kodeworks.doffapp.nlp.{CompoundSplitter, SpellingCorrector}
-import com.kodeworks.doffapp.util.RichFuture
 import org.jsoup.Jsoup
+import com.kodeworks.doffapp.util.RichFuture
 import org.jsoup.nodes.{Document, Element}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import scala.util.Try
 
+//TODO keep httpsession across one crawl
 class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
 
   import ctx._
@@ -32,6 +33,7 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
   implicit val ec = context.dispatcher
   var last = CrawlData(Instant.now.minusMillis(listBeforeNow).atOffset(ZoneOffset.UTC).toInstant.toEpochMilli)
+  var lastTender = ""
 
   override def preStart {
     log.info("born")
@@ -73,9 +75,10 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
       .flatMap(_ => internalLogin)
       .flatMap(_ => list(now))
       .flatMap(split _)
-      .map(forward(_, now))
-      .mapAll(_ =>
-        context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl))
+      //      .flatMap(details _)
+      //      .flatMap(parseDetails _)
+      .mapAll(forward(_, now))
+
   }
 
   def index: Future[Document] =
@@ -111,8 +114,7 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
     val tenderDate = listDateFormat.format(Instant.ofEpochMilli(math.max(last.last, now.minusMillis(listBeforeNow).toEpochMilli)).atOffset(ZoneOffset.UTC))
     val url = listUrl.format(tenderDate)
     log.debug("Getting tenders since {}, url {}", tenderDate, url)
-    doc(Http().singleRequest(HttpRequest(
-      uri = url)))
+    doc(Http().singleRequest(HttpRequest(uri = url)))
   }
 
   def split(document: Document): Future[List[Tender]] = {
@@ -140,11 +142,31 @@ class CrawlService(ctx: Ctx) extends Actor with ActorLogging {
 
   def parseInstant(date: String) = LocalDate.parse(date, listDateFormat).atStartOfDay.toInstant(ZoneOffset.UTC)
 
-  def forward(tenders: List[Tender], now: Instant = Instant.now) = {
-    tenderService ! SaveTenders(tenders)
+  def details(tenders: List[Tender]): Future[List[(Tender, Document)]] =
+    Future.sequence(tenders.map(tender =>
+      doc(Http().singleRequest(HttpRequest(uri = s"$mainUrl${tender.internalUrl}")))
+        .map(tender -> _)))
+
+  def parseDetails(tenderDetailDocs: List[(Tender, Document)]) = {
+    Future.successful(tenderDetailDocs.map { case (tender, detailDoc) =>
+      parseDetail(detailDoc)
+      tender
+    })
+  }
+
+  def parseDetail(detailDoc: Document) = {
+    val x = detailDoc.select("div.eps-section:nth-child(3)")
+    println(x)
+  }
+
+  def forward(triedTenders: Try[List[Tender]], now: Instant = Instant.now) = {
+    log.debug("Parse done: {}", triedTenders.map(_.size + " tenders parsed"))
+    val tenders = triedTenders.toOption.toList.flatten
+    if (tenders.nonEmpty)
+      tenderService ! NewTenders(tenders)
     last = last.copy(last = now.toEpochMilli)
     dbService ! Upsert(last)
-    tenders
+    context.system.scheduler.scheduleOnce(crawlInterval, self, Crawl)
   }
 }
 
@@ -153,5 +175,4 @@ object CrawlService {
   val usernameKey = "username"
 
   case object Crawl
-
 }

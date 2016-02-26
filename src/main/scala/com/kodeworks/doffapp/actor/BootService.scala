@@ -55,6 +55,7 @@ class BootService(val ctx: Ctx) extends Actor with ActorLogging {
       scheduleInitTimeoutTimer
     case InitSuccess if serviceName[HttpService] == sender.path.name =>
       log.info("Http => init done, BootService terminating")
+      log.info("\n\n\n----==== BOOT DONE | HAVE FUN ====----\n\n")
       context.stop(self)
     case x =>
       log.error("Unknown {}", x)
@@ -71,6 +72,5 @@ class BootService(val ctx: Ctx) extends Actor with ActorLogging {
 
   override def postStop {
     stopInitTimeoutTimer
-    log.info("\n\n\n----==== BOOT DONE | HAVE FUN ====----\n\n")
   }
 }

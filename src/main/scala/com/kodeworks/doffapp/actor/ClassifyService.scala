@@ -162,6 +162,7 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
           else count1
         }
       }
+      //TODO skip 1-2-(3?) length words
       processedNames ++= ts.map(tender => tender.doffinReference ->
         SpellingCorrector.words(tender.name.toLowerCase).flatMap { s =>
           //TODO add to common corrections

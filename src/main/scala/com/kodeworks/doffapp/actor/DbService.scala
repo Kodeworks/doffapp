@@ -169,6 +169,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
         }
         .map(res => Upserted(res._2.toMap, res._1.toMap))
         .pipeTo(zender)
+      //TODO case delete - will require exposing ids on table map
   }
 
   def goDown {

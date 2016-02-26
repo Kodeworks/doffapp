@@ -12,7 +12,7 @@ class ClassifierFactory(nlp: Nlp, trainingData: Seq[String]) {
 
   import nlp._
 
-  private val examples0: Seq[Example[String, String]] = {
+  private def examples0: Seq[Example[String, String]] = {
     var i = -1
     def inc: Int = {
       i += 1
@@ -23,7 +23,7 @@ class ClassifierFactory(nlp: Nlp, trainingData: Seq[String]) {
     trainingData.map(t => {
       val labels = classifyLabels(inc)
       Example(labels.toString, t)
-    })
+    }) :+ Example(classifyLabels(inc), "DEFAULT")
   }
   private val bowClassifier0 = NakContext.trainClassifier(liblinearConfig, bowFeaturizer, examples0).asInstanceOf[LiblinearClassifier]
   private val lmap: Map[String, Int] = bowClassifier0.lmap

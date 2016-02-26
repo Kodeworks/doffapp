@@ -30,6 +30,8 @@ trait TestCtx extends Ctx {
   override val envConfigFull: Config = null
   override val userConfig: Config = null
   override val userConfigFull: Config = null
+  override val systemEnvironment:Config = null
+  override val systemProperties:Config = null
   override val config: Config = null
   override val bootInitTimeout: Long = 0L
   override val crawlInterval: FiniteDuration = null

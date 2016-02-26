@@ -10,7 +10,7 @@ package object message {
 
   case object InitTimeout
 
-  case class SaveTenders(tenders: Seq[Tender])
+  case class NewTenders(tenders: Seq[Tender])
 
   case class SaveClassifys(classifys: Seq[Classify])
 

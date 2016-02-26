@@ -30,6 +30,7 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
   implicit def sm = sessionManager
 
   val tenders = mutable.Map[String, Tender]()
+  val crawling = mutable.Map[String, Tender]()
 
   var tendersListener: Option[ActorRef] = None
 
@@ -59,7 +60,7 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
         path("relevant") {
           rc => (classifyService ? GetClassifications(user)).mapTo[GetClassificationsReply].flatMap {
             case GetClassificationsReply(Some(cs)) =>
-              rc.complete(cs.map(c => tenders(c.tender)->c))
+              rc.complete(cs.map(c => tenders(c.tender) -> c))
             case _ => rc.complete("No classifications")
           }
         } ~
@@ -77,8 +78,10 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
     case ListenTenders(ts) =>
       tendersListener = Some(sender)
       sender ! ListenTendersReply(tenders.filter(dt => ts.contains(dt._1)).values.toSeq)
-    case SaveTenders(ts) =>
-      val newTenders0 = ts.filter(t => !tenders.contains(t.doffinReference))
+    case NewTenders(ts) =>
+      val newTenders0 = ts.filter(t =>
+        !tenders.contains(t.doffinReference)
+          && !crawling.contains(t.doffinReference))
       log.info("Got {} tenders, of which {} were new", ts.size, newTenders0.size)
       newTenders(newTenders0)
       if (newTenders0.nonEmpty) dbService ! Insert(newTenders0: _*)
@@ -92,7 +95,9 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
   }
 
   def newTenders(ts: Seq[Tender]) {
-    tenders ++= ts.map(t => t.doffinReference -> t)
-    tendersListener.foreach(_ ! ListenTendersReply(ts))
+//    crawling ++= ts.map(t => t.doffinReference -> t)
+
+        tenders ++= ts.map(t => t.doffinReference -> t)
+        tendersListener.foreach(_ ! ListenTendersReply(ts))
   }
 }

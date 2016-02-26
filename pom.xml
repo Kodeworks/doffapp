@@ -14,7 +14,7 @@
         <akka.http.version>2.0.2</akka.http.version>
         <akka.version>2.4.1</akka.version>
         <argonaut.version>6.1</argonaut.version>
-        <argonaut-shapeless.version>6.1</argonaut-shapeless.version>
+        <argonaut-shapeless.version>1.0.0-M1</argonaut-shapeless.version>
         <breeze.version>0.11.2</breeze.version>
         <epic.version>0.3.1</epic.version>
         <HikariCP.version>2.4.3</HikariCP.version>
@@ -185,12 +185,11 @@
         </dependency>
 
 
-
-   <dependency>
-       <groupId>com.chuusai</groupId>
-       <artifactId>shapeless_2.11</artifactId>
-       <version>${shapeless.version}</version>
-   </dependency>
+        <dependency>
+            <groupId>com.chuusai</groupId>
+            <artifactId>shapeless_2.11</artifactId>
+            <version>${shapeless.version}</version>
+        </dependency>
         <!--
            <dependency>
                <groupId>com.typesafe.slick</groupId>
@@ -206,12 +205,12 @@
 
 
            -->
-
         <dependency>
             <groupId>com.github.alexarchambault</groupId>
-            <artifactId>argonaut-shapeless_2.11</artifactId>
+            <artifactId>argonaut-shapeless_6.1_2.11</artifactId>
             <version>${argonaut-shapeless.version}</version>
         </dependency>
+
 
         <dependency>
             <groupId>junit</groupId>
