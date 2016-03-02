@@ -1,14 +1,5 @@
 import breeze.linalg._
-import breeze.math._
-import breeze.numerics.sigmoid
-import breeze.optimize.FirstOrderMinimizer.OptParams
-import breeze.optimize.proximal.LogisticGenerator
-import breeze.stats.distributions._
-import breeze.optimize.{DiffFunction, LBFGS}
-import breeze.stats
-import breeze.stats.DescriptiveStats
-import breeze.optimize._
-import breeze.linalg._
+import com.kodeworks.doffapp.nlp
 
 object EnsembleClassification extends App {
 
@@ -35,26 +26,22 @@ object EnsembleClassification extends App {
   object all extends Classifier(.01, .07, .14, .21, .28, .35, .42, .49, .5, .56, .63, .7, .77, .84, .91, .98, .99)
 
   val classifiers = List(low, lowMedium, medium, high, all)
-
   val testData = (0 until 100).toArray
-  val predictions = testData.flatMap(t => classifiers.map(_.classify(t)))
-  val predictMatrix: DenseMatrix[Double] = new DenseMatrix(classifiers.size, testData.size, predictions).t
-  println(predictMatrix)
+  val predictions: Array[Double] = testData.flatMap(t => classifiers.map(_.classify(t)))
+  val predicted: DenseMatrix[Double] = new DenseMatrix(classifiers.size, testData.size, predictions).t
+  println(predicted)
+  var i = 0
+  val labeled: DenseVector[Double] = predicted(*, ::).map { row =>
+    1d
+  }
 
-  //  val predictMatrix0 = DenseMatrix.vertcat(predictMatrix(0, ::).inner.toDenseMatrix, DenseMatrix.zeros[Double](predictMatrix.cols + 2, predictMatrix.cols))
-  //  println(predictMatrix0)
+  import com.kodeworks.doffapp.nlp._
 
-  val xx = stats.regression.leastSquares(predictMatrix, DenseVector.fill(predictMatrix.rows, .5))
-  val yy = normalize(xx.coefficients)
-  println("least squared:\n" + xx.coefficients)
-  println("normalized:\n" + yy)
-  println("normalized vector " + DenseVector(-48.0, -37.3).map(sigmoid(_)))
+  val weights: DenseVector[Double] = weighLabeledPredictions(predicted, labeled)
+  println("weights: " + weights)
 
-  //  val testData: DenseVector[Double] = new DenseVector(classifiers.map(_.classify(0)).toArray)
-  //  val xx = predictMatrix \ testData
-  //  println(xx)
-
-  //  println(stats.meanAndVariance(predictions))
-
-
+  val weightedMeans: DenseVector[Double] = predicted(*, ::).map { row =>
+    predictionsWeightedMean(row, weights)
+  }
+  println("weightedMeans: " + weightedMeans)
 }

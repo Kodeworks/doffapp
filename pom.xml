@@ -15,7 +15,7 @@
         <akka.version>2.4.1</akka.version>
         <argonaut.version>6.1</argonaut.version>
         <argonaut-shapeless.version>1.0.0-M1</argonaut-shapeless.version>
-        <breeze.version>0.11.2</breeze.version>
+        <breeze.version>0.12</breeze.version>
         <epic.version>0.3.1</epic.version>
         <HikariCP.version>2.4.3</HikariCP.version>
         <h2.version>1.4.190</h2.version>
@@ -232,5 +232,31 @@
             <version>${scalatest.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <version>1.0.13</version>
+        </dependency>
+
+        <!--
+                <dependency>
+                    <groupId>PatrickNicolas</groupId>
+                    <artifactId>scalaml_2.11</artifactId>
+                    <version>0.99</version>
+                </dependency>
+-->
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <version>1.7.18</version>
+                </dependency>
+
     </dependencies>
 </project>
