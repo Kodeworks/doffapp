@@ -79,13 +79,13 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
         (get & pathPrefix("classification")) {
           path("tfidf") {
             userClassifications.get(user) match {
-              case Some(classifications) => complete(classifications.sortBy(-_.tfidf("1")))
+              case Some(classifications) => complete(classifications.sortBy(-_.tfidf))
               case _ => complete("No classifications for user")
             }
           } ~
             path("bow") {
               userClassifications.get(user) match {
-                case Some(classifications) => complete(classifications.sortBy(-_.bow("1")))
+                case Some(classifications) => complete(classifications.sortBy(-_.bow))
                 case _ => complete("No classifications for user")
               }
             } ~
@@ -145,7 +145,7 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
       }
     case GetClassifications(user) =>
       log.info("Get classifications for user {}", user)
-      sender ! GetClassificationsReply(userClassifications.get(user).map(_.toSeq.sortBy(-_.tfidf("1"))))
+      sender ! GetClassificationsReply(userClassifications.get(user).map(_.sortBy(-_.weighted)))
     case ListenTendersReply(tenders) =>
       newTenders(tenders)
     case x => log.error("Unknown " + x)
@@ -228,15 +228,9 @@ class ClassifyService(ctx: Ctx) extends Actor with ActorLogging {
 
   def classification(user: String, tender: String) = {
     userClassifiers.get(user).flatMap { classifier =>
-      processedNames.get(tender).map { pn =>
-        Classification(
-          tender,
-          user,
-          classifier.tfidf(pn),
-          classifier.bow(pn),
-          classifier.nb(pn)
-        )
-      }
+      processedNames.get(tender).map(
+        classifier.classification(tender, user, _)
+      )
     }
   }
 }

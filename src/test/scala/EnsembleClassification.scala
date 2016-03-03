@@ -41,7 +41,7 @@ object EnsembleClassification extends App {
   println("weights: " + weights)
 
   val weightedMeans: DenseVector[Double] = predicted(*, ::).map { row =>
-    predictionsWeightedMean(row, weights)
+    weightedMean(row.toArray, weights.toArray)
   }
   println("weightedMeans: " + weightedMeans)
 }

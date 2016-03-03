@@ -5,7 +5,9 @@ import com.kodeworks.doffapp.nlp.ClassifierFactory
 
 object ClassificationTest extends App {
 
-  val trainingData: Seq[(String, String)] = Seq(
+  val trainingData: Seq[(String, String)] = Seq(("1", "omsorg bolig i ål sentrum"))
+
+  val trainingData2: Seq[(String, String)] = Seq(
     ("1", "omsorg bolig i ål sentrum"),
     ("1", "evaluering av tjeneste tilbud til person med behov for lindre omsorg"),
     ("1", "vikartjeneste til omsorg sektor i kristiansund kommune"),
@@ -39,19 +41,6 @@ object ClassificationTest extends App {
     ("0", "avklaring med jobbsøk og praksis") //error on all
   )
 
-  //Naive Bayes
-  //  val trainer = new NaiveBayes.Trainer[String, String]()
-  //  def toNbData(data: Seq[(Int, String)]): Seq[Example[String, Counter[String, Double]]] =
-  //    data.map(t => Example(t._"1".toString, Counter.count(t._2.split(" "): _*).mapValues(_.toDouble)))
-  //  val nbExamples = toNbData(trainingData)
-  //  val nbTest = toNbData(testData)
-  //  val nbClassifier: NaiveBayes[String, String] = trainer.train(nbExamples)
-  //  nbTest.foreach { nbt =>
-  //    val f"0" = nbClassifier.scores(nbt.features).toMap.toList.sortBy(_._"1")
-  //    println(f"0".mkString(", "))
-  //  }
-  //  println
-
   trait Ctx extends TestCtx {
     override val mostUsedWordsTop64: Set[String] = Set()
   }
@@ -60,10 +49,26 @@ object ClassificationTest extends App {
 
   val cf = new ClassifierFactory(ctx, trainingData.map(_._2))
   val c = cf.classifier(trainingData)
-  //  val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
-  //  val stopwords: Set[String] = leastSignificantWords.take(3"0").map(_._"1").toSet
+
+  //  //  val leastSignificantWords: List[(String, Double)] = tfidfFeaturized.flatMap(_.features).groupBy(_.feature).mapValues(_.minBy(_.magnitude).magnitude).toList.sortBy(lm => -lm._2)
+  //  //  val stopwords: Set[String] = leastSignificantWords.take(3"0").map(_._"1").toSet
+  def p0(tp: String, prediction: Double) = tp + " " + f"$prediction%1.3f"
+
+  def p(tp: String, prediction: Double) {
+    println(p0(tp, prediction))
+  }
+
+  println("Weights:\n" +
+    p0("bow", c.weights(0)) + "\n" +
+    p0("tfidf", c.weights(1)) + "\n" +
+    p0("nb", c.weights(2))) + "\n"
   testData.foreach { td =>
-    println(td._1 + " bow   " + c.bow(td._2))
-    println(td._1 + " tfidf " + c.tfidf(td._2))
+    println("label: " + td._1)
+    p("bow     ", c.bow(td._2))
+    p("tfidf   ", c.tfidf(td._2))
+    p("nb      ", c.nb(td._2))
+    p("weighted", c.weighted(td._2))
+    p("mean    ", c.mean(td._2))
+    println()
   }
 }

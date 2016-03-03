@@ -16,22 +16,22 @@ package object nlp {
     examples.map(_.map(countString(_, stopwords))).toSeq
 
   def weighLabeledPredictions(predictions: DenseMatrix[Double], labels: DenseVector[Double]): DenseVector[Double] = {
-    val sqErrs: DenseMatrix[Double] = DenseMatrix.horzcat(predictions, labels.asDenseMatrix.t).apply(*, ::).map { row =>
+    def sqErrs: DenseMatrix[Double] = DenseMatrix.horzcat(predictions, labels.asDenseMatrix.t).apply(*, ::).map { row =>
       val l: Double = row(-1)
       val ps: DenseVector[Double] = row(0 to -2)
       ps.map(p => math.pow(l - p, 2d))
     }
-    val sumSqErrs = sqErrs(::, *).map(sum(_)).inner
-    val normSumSqErrs = normalize(sumSqErrs)
-    val invNormSumSqErrs = normSumSqErrs.map(1d - _)
-    val normInvNormSumSqErrs = {
+    def sumSqErrs = sqErrs(::, *).map(sum(_)).inner
+    def normSumSqErrs = normalize(sumSqErrs)
+    def normInvNormSumSqErrs = {
+      val invNormSumSqErrs = normSumSqErrs.map(1d - _)
       val sm = sum(invNormSumSqErrs)
       invNormSumSqErrs.map(_ / sm)
     }
     normInvNormSumSqErrs
   }
 
-  def predictionsWeightedMean(predictions: DenseVector[Double], weights: DenseVector[Double]): Double = {
-    predictions.toArray.zip(weights.toArray).map(pv => pv._1 * pv._2).sum / predictions.size
+  def weightedMean(values: Array[Double], weights: Array[Double]): Double = {
+    values.zip(weights).map(pv => pv._1 * pv._2).sum
   }
 }
