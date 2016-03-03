@@ -2,15 +2,10 @@ package com.kodeworks.doffapp
 
 import java.io.File
 
-import breeze.linalg.SparseVector
-import epic.preprocess.MLSentenceSegmenter
 import nak.NakContext._
-import nak.cluster.Kmeans
-import nak.core.IndexedClassifier
 import nak.data._
 import nak.liblinear.LiblinearConfig
 import nak.util.ConfusionMatrix
-import org.junit.Test
 
 class NakTest {
   //  @Test

@@ -32,7 +32,7 @@ object EnsembleClassification extends App {
   println(predicted)
   var i = 0
   val labeled: DenseVector[Double] = predicted(*, ::).map { row =>
-    1d
+    0d
   }
 
   import com.kodeworks.doffapp.nlp._

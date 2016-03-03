@@ -19,7 +19,7 @@ package object nlp {
     val sqErrs: DenseMatrix[Double] = DenseMatrix.horzcat(predictions, labels.asDenseMatrix.t).apply(*, ::).map { row =>
       val l: Double = row(-1)
       val ps: DenseVector[Double] = row(0 to -2)
-      ps.map(p => math.pow(l - p, 2))
+      ps.map(p => math.pow(l - p, 2d))
     }
     val sumSqErrs = sqErrs(::, *).map(sum(_)).inner
     val normSumSqErrs = normalize(sumSqErrs)

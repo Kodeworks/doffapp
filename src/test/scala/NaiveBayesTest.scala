@@ -20,9 +20,7 @@ object NaiveBayesTest extends App {
   ).map(t => Example(t._1, Counter.count(t._2.split(" "): _*).mapValues(_.toDouble)))
 
   val nb = new NaiveBayes(train)
-  val scores: Counter[String, Double] = nb.scores(Counter.count("alpha bravo charlie delta kilo".split(" "): _*).mapValues(_.toDouble))
-  val values = DenseVector(scores.valuesIterator.toArray)
-  val xx = exp(values - softmax(values))
+  val scores  = nb.normScores(Counter.count("alpha bravo charlie delta kilo".split(" "): _*).mapValues(_.toDouble))
 
-  println(xx)
+  println(scores)
 }
