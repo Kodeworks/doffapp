@@ -1,0 +1,64 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          ${project.artifactId}
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: ${project.artifactId}
+# Description:       ${project.artifactId}
+### END INIT INFO
+
+DOFFAPP_DIR=/opt/doffapp
+SERVICE_NAME=doffapp
+NAME=${project.artifactId}
+DESC="doffapp init script"
+PIDFILE=$DOFFAPP_DIR/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+PATH_TO_JAR=$DOFFAPP_DIR/${project.build.finalName}.jar
+PATH_TO_LOG=$DOFFAPP_DIR/${project.artifactId}.log
+OPTS="-Xmx1g -Denv=${env}"
+
+case "$1" in
+start)
+	printf "%-50s" "Starting $NAME..."
+        cd $DOFFAPP_DIR
+	java $OPTS -jar $PATH_TO_JAR &> $PATH_TO_LOG 2>&1 &
+	echo $! > $PIDFILE 
+	echo "Saving PID" $PID " to " $PIDFILE
+;;
+status)
+        printf "%-50s" "Checking $NAME..."
+        if [ -f $PIDFILE ]; then
+            PID=`cat $PIDFILE`
+            if [ -z "`ps axf | grep ${PID} | grep -v grep`" ]; then
+                printf "%s\n" "Process dead but pidfile exists"
+            else
+                echo "Running"
+            fi
+        else
+            printf "%s\n" "Service not running"
+        fi
+;;
+stop)
+        printf "%-50s" "Stopping $NAME"
+            PID=`cat $PIDFILE`
+        if [ -f $PIDFILE ]; then
+            kill -HUP $PID
+            printf "%s\n" "Ok"
+            rm -f $PIDFILE
+        else
+            printf "%s\n" "pidfile not found"
+        fi
+;;
+
+restart)
+  	$0 stop
+  	$0 start
+;;
+
+*)
+        echo "Usage: $0 {status|start|stop|restart}"
+        exit 1
+esac

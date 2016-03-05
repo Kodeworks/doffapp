@@ -21,6 +21,7 @@
         <jsoup.version>1.8.3</jsoup.version>
         <junit.version>4.12</junit.version>
         <logback.version>1.1.3</logback.version>
+        <maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
         <maven-compiler-plugin.version>3.3</maven-compiler-plugin.version>
         <mysql-connector-java.version>5.1.38</mysql-connector-java.version>
         <nak.version>1.3</nak.version>
@@ -32,6 +33,8 @@
         <slick.version>3.1.1</slick.version>
         <slickext.version>0.0.4</slickext.version>
         <stanford-nlp.version>3.5.2</stanford-nlp.version>
+
+        <env>dev</env>
     </properties>
 
     <repositories>
@@ -77,6 +80,37 @@
                         </compilerPlugin>
                     </compilerPlugins>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.kodeworks.doffapp.Boot</mainClass>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>application.conf</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -125,9 +159,21 @@
         </dependency>
 
         <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>io.argonaut</groupId>
             <artifactId>argonaut_2.11</artifactId>
             <version>${argonaut.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-reflect</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -189,8 +235,6 @@
                <artifactId>HikariCP</artifactId>
                <version>${HikariCP.version}</version>
            </dependency>
-
-
            -->
         <dependency>
             <groupId>com.github.alexarchambault</groupId>
@@ -198,12 +242,17 @@
             <version>${argonaut-shapeless.version}</version>
         </dependency>
 
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6</version>
         </dependency>
 
         <dependency>
@@ -219,31 +268,46 @@
             <version>${scalatest.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
-            <version>3.6</version>
-        </dependency>
-
-        <dependency>
-            <groupId>jfree</groupId>
-            <artifactId>jfreechart</artifactId>
-            <version>1.0.13</version>
-        </dependency>
-
-        <!--
-                <dependency>
-                    <groupId>PatrickNicolas</groupId>
-                    <artifactId>scalaml_2.11</artifactId>
-                    <version>0.99</version>
-                </dependency>
--->
-                <dependency>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>log4j-over-slf4j</artifactId>
-                    <version>1.7.18</version>
-                </dependency>
-
     </dependencies>
+
+    <profiles>
+        <profile>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <id>dev</id>
+            <properties>
+                <env>dev</env>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+        </profile>
+        <profile>
+            <id>test</id>
+            <properties>
+                <env>test</env>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>${maven-assembly-plugin.version}</version>
+                        <configuration>
+                            <descriptor>package/assembly.xml</descriptor>
+                            <finalName>${project.name}-${project.version}</finalName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

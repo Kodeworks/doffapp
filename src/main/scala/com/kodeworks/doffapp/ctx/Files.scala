@@ -1,5 +1,7 @@
 package com.kodeworks.doffapp.ctx
 
+import java.io.FileNotFoundException
+
 import scala.io.{Codec, Source}
 import scala.util.Try
 
@@ -24,13 +26,13 @@ trait FilesImpl extends Files {
     implicit val codec = mostUsedWordsCodec
     validSource(Source.fromFile(mostUsedWordsSrc))
       .orElse(validSource(Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(mostUsedWordsSrc))))
-      .get
+      .getOrElse(throw new FileNotFoundException(mostUsedWordsSrc))
   }
   override val wordbankCodec = Codec(wordbankCodecName)
 
   override val wordbankSource: Source = {
     implicit val codec = wordbankCodec
     validSource(Source.fromFile(wordbankSrc))
-      .get
+      .getOrElse(throw new FileNotFoundException(wordbankSrc))
   }
 }

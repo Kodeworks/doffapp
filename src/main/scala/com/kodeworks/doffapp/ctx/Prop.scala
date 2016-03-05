@@ -12,6 +12,8 @@ import scala.util.Try
 trait Prop {
   val bootInitTimeout: Long
   val crawlInterval: FiniteDuration
+  val dbH2Server: Boolean
+  val dbSchemaCreate: Boolean
   val dbType: String
   val httpInterface: String
   val httpPort: Int
@@ -37,6 +39,8 @@ trait PropImpl extends Prop {
   println("Loading Prop")
   override val bootInitTimeout = config.getDuration("boot.init.timeout").toMillis
   override val crawlInterval: FiniteDuration = config.getDuration("crawl.interval", MILLISECONDS) millis
+  override val dbH2Server = config.getBoolean("db.h2.server")
+  override val dbSchemaCreate = config.getBoolean("db.schema.create")
   override val dbType = config.getString("db.type")
   override val httpInterface = config.getString("http.interface")
   override val httpPort = config.getInt("http.port")

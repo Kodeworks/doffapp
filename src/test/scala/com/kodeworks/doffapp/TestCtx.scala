@@ -35,6 +35,8 @@ trait TestCtx extends Ctx {
   override val config: Config = null
   override val bootInitTimeout: Long = 0L
   override val crawlInterval: FiniteDuration = null
+  override val dbH2Server: Boolean = false
+  override val dbSchemaCreate: Boolean = false
   override val dbType: String = null
   override val httpInterface: String = null
   override val httpPort: Int = 0

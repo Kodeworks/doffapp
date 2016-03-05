@@ -5,5 +5,8 @@
 **~
 deptree.txt
 log
+*.log
 temp/**
 src/test/shell/cookies.txt
+dependency-reduced-pom.xml
+package/resources/*

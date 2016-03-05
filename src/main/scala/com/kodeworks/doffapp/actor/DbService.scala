@@ -19,6 +19,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 import scalaz.Scalaz._
 
+//TODO need a way to genereate diff between releases
 class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
 
   import context.dispatcher
@@ -44,11 +45,13 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
   override def preStart {
     context.become(initing)
     val inits = ListBuffer[Future[Any]]()
-    if (dev) {
+    if (dbSchemaCreate) {
       inits += db.run(tableQuerys.map(_.schema).reduce(_ ++ _).create).map { res =>
         log.info("Schema created")
         res
       }
+    }
+    if (dbH2Server) {
       h2WebServer = Server.createWebServer("-web", "-webAllowOthers", "-webPort", "8082")
       h2WebServer.start
     }
@@ -169,7 +172,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
         }
         .map(res => Upserted(res._2.toMap, res._1.toMap))
         .pipeTo(zender)
-      //TODO case delete - will require exposing ids on table map
+    //TODO case delete - will require exposing ids on table map
   }
 
   def goDown {
