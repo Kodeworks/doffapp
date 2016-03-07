@@ -5,9 +5,6 @@ import nak.classify.NaiveBayes
 import nak.data.Example
 
 object NaiveBayesTest extends App {
-  //  def unnormalizedLogProb2prob(ulp: Double) =
-  //    math.exp(ulp - softmax(ulp))
-
   val train = List(
     "1" -> "alpha bravo charlie delta echo foxtrot",
     "1" -> "bravo delta foxtrot golf",
