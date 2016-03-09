@@ -1,6 +1,8 @@
 package com.kodeworks.doffapp
 
+import breeze.generic.{MappingUFunc, UFunc}
 import breeze.linalg._
+import breeze.numerics.sqrt._
 import nak.data.Example
 
 package object nlp {

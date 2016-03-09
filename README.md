@@ -10,3 +10,5 @@ Whenever a batch of M compound word is split more than N times, the split forms 
 
 Whenever M most used word is used more than N times for discarding words, they must be validated by a human that they actually are unimportant.
 Same for TFIDF words.
+
+Need cancellable async classifications
