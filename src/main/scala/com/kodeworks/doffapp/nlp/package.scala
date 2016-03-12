@@ -4,6 +4,7 @@ import breeze.generic.{MappingUFunc, UFunc}
 import breeze.linalg._
 import breeze.numerics.sqrt._
 import nak.data.Example
+import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation
 
 package object nlp {
   def countString(raw: String, stopwords: Set[String] = Set[String]()): Counter[String, Double] =
@@ -36,4 +37,10 @@ package object nlp {
   def weightedMean(values: Array[Double], weights: Array[Double]): Double = {
     values.zip(weights).map(pv => pv._1 * pv._2).sum
   }
+
+  def whiten(features: Vector[DenseVector[Double]]): DenseMatrix[Double] =
+    DenseMatrix(features.map(_.toArray).toArray: _*).apply(::, *).map { col =>
+      val _stddev = new StandardDeviation(false).evaluate(col.toArray)
+      col / (if (0d == _stddev) 1d else _stddev)
+    }
 }

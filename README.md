@@ -12,3 +12,6 @@ Whenever M most used word is used more than N times for discarding words, they m
 Same for TFIDF words.
 
 Need cancellable async classifications
+
+Need to port elbow method by gap statistics for determining best k in k means for geographical classification
+https://datasciencelab.wordpress.com/2013/12/27/finding-the-k-in-k-means-clustering/

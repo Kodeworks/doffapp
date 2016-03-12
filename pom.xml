@@ -10,9 +10,8 @@
     <description>Scala model update</description>
 
     <properties>
-        <akka.http.session.version>0.2.3</akka.http.session.version>
-        <akka.http.version>2.0.2</akka.http.version>
-        <akka.version>2.4.1</akka.version>
+        <akka.http.session.version>0.2.4</akka.http.session.version>
+        <akka.version>2.4.2</akka.version>
         <argonaut.version>6.1</argonaut.version>
         <argonaut-shapeless.version>1.0.0-M1</argonaut-shapeless.version>
         <breeze.version>0.12</breeze.version>
@@ -131,7 +130,7 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http-experimental_2.11</artifactId>
-            <version>${akka.http.version}</version>
+            <version>${akka.version}</version>
         </dependency>
 
         <dependency>
@@ -223,19 +222,7 @@
             <artifactId>shapeless_2.11</artifactId>
             <version>${shapeless.version}</version>
         </dependency>
-        <!--
-           <dependency>
-               <groupId>com.typesafe.slick</groupId>
-               <artifactId>slick-codegen_2.11</artifactId>
-               <version>${slick.version}</version>
-           </dependency>
 
-           <dependency>
-               <groupId>com.zaxxer</groupId>
-               <artifactId>HikariCP</artifactId>
-               <version>${HikariCP.version}</version>
-           </dependency>
-           -->
         <dependency>
             <groupId>com.github.alexarchambault</groupId>
             <artifactId>argonaut-shapeless_6.1_2.11</artifactId>
@@ -257,8 +244,8 @@
 
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http-testkit-experimental_2.11</artifactId>
-            <version>${akka.http.version}</version>
+            <artifactId>akka-http-testkit_2.11</artifactId>
+            <version>${akka.version}</version>
             <scope>test</scope>
         </dependency>
 
