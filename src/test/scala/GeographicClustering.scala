@@ -16,7 +16,7 @@ object GeographicClustering extends App {
   //    DenseVector(1.0, 1.0))
   //
   val kmeans = new Kmeans(points)
-  val x = kmeans.fks(10)
+  val x = kmeans.detK
   println(x)
   //  val (dispersion, centroids) = kmeans.run(5, 25)
   //  println("dispersion: " + dispersion)
