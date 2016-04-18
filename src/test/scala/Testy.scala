@@ -1,6 +1,30 @@
-import com.kodeworks.doffapp.model.{Classification, Tender}
+import java.util.NoSuchElementException
 
-import argonaut._, Argonaut._, Shapeless._
+import com.kodeworks.doffapp.IdGen
+import org.junit.{Assert, Test}
+import shapeless._
 
-object Testy extends App {
+import reflect.runtime.universe._
+
+class Person
+
+class Booking
+
+class Charge
+
+class MyDao(implicit val ltag: TypeTag[Person :: Booking :: HNil]) extends IdGen[Person :: Booking :: HNil]
+
+class Testy {
+
+
+  val myDao = new MyDao
+
+  @Test(expected = classOf[NoSuchElementException])
+  def test {
+    Assert.assertEquals(0L, myDao.id[Person])
+    Assert.assertEquals(1L, myDao.id[Person])
+    Assert.assertEquals(0L, myDao.id[Booking])
+    myDao.id[Charge]
+
+  }
 }
