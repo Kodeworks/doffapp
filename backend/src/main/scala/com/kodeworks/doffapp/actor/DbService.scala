@@ -30,19 +30,8 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
   var h2WebServer: Server = null
   var upCheck: Cancellable = null
 
-  case class Chill(id: Option[Long], chilling: String, will: Int)
-
-  class Chills(tag: Tag) extends Table[Chill](tag, "chill") {
-    def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
-
-    def chilling = column[String]("chillings")
-
-    def will = column[Int]("will")
-
-    def * = (id, chilling, will) <>((Chill.apply _).tupled, Chill.unapply)
-  }
-
   override def preStart {
+    log.info("Born")
     context.become(initing)
     val inits = ListBuffer[Future[Any]]()
     if (dbSchemaCreate) {
@@ -79,6 +68,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
     db.close
     if (null != h2WebServer)
       h2WebServer.stop()
+    log.info("Died")
   }
 
   def initing = Actor.emptyBehavior
@@ -129,9 +119,9 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
       Future.sequence(persistables
         .flatMap(per => table(per)
           .map(table =>
-            db.run(table.returning(table.map(_.id)) += per)
+            db.run(table += per)
               .mapAll {
-                case Success(res) => Right(per -> res)
+                case Success(res) => Right(per)
                 case Failure(x) => Left(per -> x)
               }
           )).asInstanceOf[Seq[Future[Either[(AnyRef, Throwable), (AnyRef, Option[Long])]]]])
@@ -140,11 +130,11 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
           if (res._1.nonEmpty) {
             log.error(res._1.asInstanceOf[Iterable[(_, Throwable)]].head._2, "Insert db error")
             zelf ! GoDown
-            zelf ! Insert(res._1.map(_._1): _*)
+            zelf ! Insert(res._1: _*)
           }
           res
         }
-        .map(res => Inserted(res._2.toMap, res._1.toMap))
+        .map(res => Inserted(res._2.toSet, res._1.toMap))
         .pipeTo(zender)
 
     case Upsert(persistable@_ *) =>
@@ -187,7 +177,7 @@ class DbService(val ctx: Ctx) extends Actor with ActorLogging with Stash {
 
   def doUpCheck {
     val zelf = self
-    db.run(CrawlDatas.result).mapAll {
+    db.run( Users.result).mapAll {
       case Success(res) =>
         zelf ! GoUp
       case Failure(x) =>
@@ -228,10 +218,11 @@ object DbService {
   case class Insert(persistables: AnyRef*) extends DbCommand
 
   case class Inserted(
-                       persistables: Map[AnyRef, Option[Long]],
+                       persistables: Set[AnyRef],
                        errors: Map[AnyRef, Throwable] = Map.empty
                      ) extends DbOutMessage
 
+  //TODO Upsert may fail if insert has not yet been responded to by db
   case class Upsert(persistables: AnyRef*) extends DbCommand
 
   case class Upserted(

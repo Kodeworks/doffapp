@@ -12,19 +12,16 @@ class Booking
 
 class Charge
 
-class MyDao(implicit val ltag: TypeTag[Person :: Booking :: HNil]) extends IdGen[Person :: Booking :: HNil]
+class MyDao(implicit val ltag: TypeTag[Person :: Booking :: HNil]) extends IdGen
 
-class Testy {
-
-
-  val myDao = new MyDao
+class IdGenTest {
 
   @Test(expected = classOf[NoSuchElementException])
   def test {
+    val myDao = new MyDao
     Assert.assertEquals(0L, myDao.id[Person])
     Assert.assertEquals(1L, myDao.id[Person])
     Assert.assertEquals(0L, myDao.id[Booking])
     myDao.id[Charge]
-
   }
 }

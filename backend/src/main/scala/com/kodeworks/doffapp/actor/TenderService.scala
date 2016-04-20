@@ -9,16 +9,22 @@ import akka.stream.ActorMaterializer
 import argonaut.Argonaut._
 import argonaut.Shapeless._
 import argonaut._
-import com.kodeworks.doffapp.actor.DbService.{Insert, Inserted, Load, Loaded}
+import com.kodeworks.doffapp.IdGen
+import com.kodeworks.doffapp.actor.DbService.{Insert, Load, Loaded}
 import com.kodeworks.doffapp.ctx.Ctx
 import com.kodeworks.doffapp.message._
 import com.kodeworks.doffapp.model.Tender
 import com.softwaremill.session.SessionDirectives._
 import com.softwaremill.session.SessionOptions._
+import shapeless.{::, HNil}
 
 import scala.collection.mutable
+import scala.reflect.runtime.universe.TypeTag
 
-class TenderService(ctx: Ctx) extends Actor with ActorLogging {
+class TenderService
+(ctx: Ctx)
+(implicit val ltag: TypeTag[Tender :: HNil])
+  extends Actor with ActorLogging with IdGen {
 
   import ctx._
 
@@ -85,19 +91,14 @@ class TenderService(ctx: Ctx) extends Actor with ActorLogging {
       log.info("Got {} tenders, of which {} were new", ts.size, newTenders0.size)
       newTenders(newTenders0)
       if (newTenders0.nonEmpty) dbService ! Insert(newTenders0: _*)
-    case Inserted(data, errors) =>
-      log.info("Inserted tenders: {}", data)
-      tenders ++= data.asInstanceOf[Map[Tender, Option[Long]]].map {
-        case (t, id) => t.doffinReference -> t.copy(id = id)
-      }
     case x =>
       log.error("Unknown " + x)
   }
 
   def newTenders(ts: Seq[Tender]) {
-//    crawling ++= ts.map(t => t.doffinReference -> t)
+    //    crawling ++= ts.map(t => t.doffinReference -> t)
 
-        tenders ++= ts.map(t => t.doffinReference -> t)
-        tendersListener.foreach(_ ! ListenTendersReply(ts))
+    tenders ++= ts.map(t => t.doffinReference -> t)
+    tendersListener.foreach(_ ! ListenTendersReply(ts))
   }
 }
