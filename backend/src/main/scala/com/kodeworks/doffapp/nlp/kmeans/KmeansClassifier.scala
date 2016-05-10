@@ -37,13 +37,23 @@ class KmeansClassifier(features: IndexedSeq[DenseVector[Double]], labels: Indexe
         case (centroid, cid) => cid -> kmeans.distanceFun(observation, centroid)
       }.unzip
     def nearestLabels: IndexedSeq[IndexedSeq[Int]] = nearests.map(nearest => featuresPerCluster(nearest).map(labels(_)))
+
+    /*
+    For each cluster Q0 - Qn, count number of 1s and 0s.
+    For the rest, unclassified observations, estimate number of 1s and 0s according to general prediction _without_ geographical consideration, call the number 1' and 0' for each cluster
+    For all the 1s, do sum each Qn so that (Qn1 + Qn1'/7)/(7 * ln(distance(Qn)^2)), where number below dividing sign is 1 if distance = 0, else the given formula
+    Same for 0s.
+    prob(1) = count(1) / (count(1) +  count(0))
+    prob(0) = count(0) / (count(1) + count(0))
+
+     */
+
     def nearestLabelCounts: IndexedSeq[IndexedSeq[Double]] = nearestLabels.map(nearestLabel => countValues(nearestLabel, Some((minLabel, maxLabel))))
+
     val nearestLabelNormalizedCounts = nearestLabelCounts.map { counts =>
       val summed = counts.sum
       math.min(.9999, math.max(.0001, counts(1) / summed))
     }
-    //    TODO undispersedDistances
-    // TODO rework distance weighing so that closeness to cluster eliminates other clusters
     val distancesSummed = distances.sum
     val normalizedDistancesInverted = distances.map(distance => 1d - distance / distancesSummed)
     val distancesInvertedSummed = normalizedDistancesInverted.sum

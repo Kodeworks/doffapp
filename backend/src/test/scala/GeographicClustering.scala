@@ -32,6 +32,6 @@ object GeographicClustering extends App {
   println("centroids: " + kc.centroids)
   println("clusterMap: " + kc.featuresPerCluster)
 //  kc.classify(test)
-  kc.classify(test2)
+  println("classify: " + kc.classify(test2))
 
 }
